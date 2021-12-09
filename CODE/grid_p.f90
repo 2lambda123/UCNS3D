@@ -6010,6 +6010,30 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             ISELEMT(N:N)=ISELEM
             IOVERST=ISELEM
             IOVERTO=ISELEM
+            
+            if (dg.eq.1)then
+                NUMNEIGHBOURS=7
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=20
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            else
+                NUMNEIGHBOURS=ILX*extf
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=(ILX*extf)*IEXTEND
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            end if
+            
+            
+            
+            
+            
+            
         
             SELECT CASE(IORDER)
             
@@ -6039,6 +6063,23 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             idegfree2=3
             IORDER2=1
             NUMNEIGHBOURS2=9
+            
+            
+            if (dg.eq.1)then
+                NUMNEIGHBOURS=7
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=20
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            end if
+            
+            
+            
+            
+            
+            
         END IF
         
 	ELSE ! 2 DIMENSIONS
@@ -6047,9 +6088,9 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             IDEGFREE=ILX-1
         
             if (dg.eq.1)then
-                NUMNEIGHBOURS=5
+                NUMNEIGHBOURS=ILX*extf
                 IMAXDEGFREE=NUMNEIGHBOURS-1
-                itemd=(3*extf)*IEXTEND
+                itemd=(ILX*extf)*IEXTEND
                 ISELEM=min(itemd,imaxe-1)
                 ISELEMT(N:N)=ISELEM
                 IOVERST=ISELEM
@@ -6085,12 +6126,26 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
         IF (IORDER.EQ.1)THEN
             ILX=((IORDER+1)*(IORDER+2))/2
             IDEGFREE=ILX-1
-            NUMNEIGHBOURS=ILX*extf
-            IMAXDEGFREE=NUMNEIGHBOURS-1
-            ISELEM=(ILX*extf)*IEXTEND
-            ISELEMT(N:N)=ISELEM
-            IOVERST=ISELEM
-            IOVERTO=ISELEM
+            
+            
+            if (dg.eq.1)then
+                NUMNEIGHBOURS=5
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=20
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            else
+                NUMNEIGHBOURS=ILX*extf
+                IMAXDEGFREE=NUMNEIGHBOURS-1
+                itemd=(ILX*extf)*IEXTEND
+                ISELEM=min(itemd,imaxe-1)
+                ISELEMT(N:N)=ISELEM
+                IOVERST=ISELEM
+                IOVERTO=ISELEM
+            end if
+            
             IORDER2=1
             idegfree2=2
             NUMNEIGHBOURS2=5
@@ -6106,10 +6161,10 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
         
     IF (DG == 1) THEN
         NUM_DG_DOFS = ILX
-        IF (DIMENSIONA == 2) THEN
-            NUM_DG_RECONSTRUCT_DOFS = (IORDER + 2) * (IORDER + 3) / 2
+        IF (DIMENSIONA == 2) THEN 
+            NUM_DG_RECONSTRUCT_DOFS = (IORDER + 2) * (IORDER + 3) / 2 - NUM_DG_DOFS
         ELSE 
-            NUM_DG_RECONSTRUCT_DOFS = (IORDER+2)*(IORDER+3)*(IORDER+4) / 6
+            NUM_DG_RECONSTRUCT_DOFS = (IORDER+2)*(IORDER+3)*(IORDER+4)/6 - NUM_DG_DOFS
         END IF
     END IF
 
@@ -6299,6 +6354,12 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 	
 	DO I=1,KMAXE
                  IELEM(N,I)%FULL=0
+                 
+                  IELEM(N,I)%TROUBLED=1
+                  
+                  if(dg.eq.1)then
+                  IELEM(N,I)%TROUBLED=0
+                  end if
 			KX=0
 		DO LM=1,TYPESTEN
                                 IF ((LM.EQ.1).OR.(EES.NE.5))THEN

@@ -22,52 +22,82 @@ INTEGER::KMAXE,i
 KMAXE=XMPIELRANK(N)
 
 if (dimensiona.eq.3)then
-    !$OMP PARALLEL DEFAULT(SHARED) 
-    !$OMP DO schedule(STATIC)
-    DO I=1,KMAXE
+!$OMP PARALLEL DEFAULT(SHARED) 
+!$OMP DO schedule(STATIC)
+DO I=1,KMAXE
 
-        ! These subroutines ensure the surface quadrature points are matched up correctly between neighbors
-        CALL LOCALISE_STENCIL(N,I)
-        CALL LOCALISE_STEN2(N,I)
+CALL LOCALISE_STENCIL(N,I)
 
-        call CHECKGRADS(N,I)
+CALL LOCALISE_STEN2(N,I)
 
-        CALL FIND_ROT_ANGLES(N,I)
 
-        CALL PRESTORE_RECONSTRUCTION3(N,I)
 
-    END DO
-    !$OMP END DO
-    !$OMP END PARALLEL
+call CHECKGRADS(N,I)
+
+
+
+CALL FIND_ROT_ANGLES(N,I)
+
+CALL PRESTORE_RECONSTRUCTION3(N,I)
+iconsidered=i
+ if (dg.eq.1)then
+ 
+ CALL PRESTORE_DG1
+    end if
+ 
+
+END DO
+!$OMP END DO
+!$OMP END PARALLEL
+
+
 
 else
 
-    !$OMP PARALLEL DEFAULT(SHARED) 
+!$OMP PARALLEL DEFAULT(SHARED) 
 
-!     CALL PRESTORE_AND_ALLOCATE_DG
-    CALL ALLOCATE_DG_MASS_MATRICES(N)
-    
-    !$OMP DO
-    DO I=1,KMAXE
 
-        ! These subroutines ensure the surface quadrature points are matched up correctly between neighbors
-        CALL LOCALISE_STENCIL2d(N,I)
-        CALL LOCALISE_STEN2d(N,I)
 
-        CALL PRESTORE_AND_ALLOCATE_DG(N, I)
+!$OMP DO
+DO I=1,KMAXE
 
-        CALL CHECKGRADS2d(N,I)
 
-        CALL FIND_ROT_ANGLES2D(N,I)
+CALL LOCALISE_STENCIL2d(N,I)
 
-        CALL PRESTORE_RECONSTRUCTION2(N,I)
 
-    END DO
-    !$OMP END DO
 
-!     CALL PRESTORE_AND_ALLOCATE_DG_SURF_QPOINTS
+CALL LOCALISE_STEN2d(N,I)
 
-    !$OMP END PARALLEL
+
+ call CHECKGRADS2d(N,I)
+ 
+
+
+CALL FIND_ROT_ANGLES2D(N,I)
+
+
+ CALL PRESTORE_RECONSTRUCTION2(N,I)
+
+ 
+ ICONSIDERED=I
+ if (dg.eq.1)then
+ 
+ CALL PRESTORE_DG1
+ 
+ 
+    end if
+END DO
+!$OMP END DO
+!$OMP END PARALLEL
+
+
+
+
+
+!takis this needs to be within a omp parallel region!
+
+
+
 
 end if
 
@@ -1007,6 +1037,9 @@ IVGT=IDEG+1
 CALL INVERT(RFF,INVRFF,IVGT)
 invmat(1:IDEg,1:ideg)=MATMUL(INVRFF(1:ideg,1:IDEG),QTFF(1:IDEG,1:IDEG))
 
+
+
+
 ! 
 ! 
 ! 
@@ -1163,7 +1196,7 @@ IF (LL.EQ.1)THEN		!stencils
 				
 				END DO
 
-				
+				compwrt=0
 				BASEFACEVAL(1:ielem(n,i)%IDEGFREE)=BASIS_REC2D(N,AX,AY,ielem(n,i)%Iorder,I,ielem(n,i)%IDEGFREE)
 				BASEFACGVAL(1:ielem(n,i)%IDEGFREE)=((NNX*XDER(1:ielem(n,i)%IDEGFREE))+(NNY*YDER(1:ielem(n,i)%IDEGFREE)))
 				
@@ -2899,14 +2932,16 @@ WEQUA3D(1:QP_QUAD)=zero
 
 CALL QUADRATURETRIANGLE(N,IGQRULES)
 
-VOL=TRIANGLEVOLUME(N)
+
+ VOL=TRIANGLEVOLUME(N)
 
 INTEG=zero
 DO Lc=1,qp_triangle
 	x1=QPOINTS(1,Lc);y1=QPOINTS(2,Lc)
-	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog)*WEQUA3D(Lc)*VOL)
+	INTEG(1:number_of_dog)=INTEG(1:number_of_dog)+(BASIS_REC2D(N,x1,y1,kxx,IXX,number_of_dog)*&
+WEQUA3D(Lc)*VOL)
 END DO
-COMPBASTRI= INTEG
+	  COMPBASTRI= INTEG
 
 END FUNCTION
 
@@ -2934,6 +2969,9 @@ SUBROUTINE INVERT(RFF,INVRFF,IVGT)
   enddo
 
  End subroutine INVERT
+ 
+
+
  
  
 END MODULE PRESTORE

@@ -20,7 +20,7 @@ INTEGER,INTENT(IN)::N
 
 IF (INITCOND.EQ.0)THEN
 IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POZ(1).GE.0.25D0).AND.(POZ(1).LE.0.75D0)))THEN
-	LINEAR_INIT3d=10.0D0
+	LINEAR_INIT3d=1.0D0
 ELSE
 	LINEAR_INIT3d=1.0D0
 END IF
@@ -44,23 +44,25 @@ real,dimension(90)::polyfun
 REAL::AADX,AADY,SUMF,rd
 integer::ixg
 !COORDINATES=POX(1),POY(1),POZ(1)
+
+
 SUMF=zero
 IF (INITCOND.EQ.1)THEN
-! IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POy(1).GE.0.25D0).AND.(POy(1).LE.0.75D0)))THEN
-! 	LINEAR_INIT2d=1.0D0
-! ELSE
-	LINEAR_INIT2d=10.0D0
+ IF(((POX(1).GE.0.25D0).AND.(POX(1).LE.0.75D0)).AND.((POy(1).GE.0.25D0).AND.(POy(1).LE.0.75D0)))THEN
+ 	LINEAR_INIT2d=1.0D0
+ ELSE
+	LINEAR_INIT2d=0.0D0
 
 END IF
+end if
 IF (INITCOND.EQ.0)THEN
 ! LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*&
 !  (SIN((2.0D0*PI)*(POY(1))))
 AADX=POX(1)
 AADY=POy(1)
- compwrt=0
+ 
 
    polyfun(1:ielem(n,iconsidered)%idegfree)=basis_rec2d(N,AADX,AADY,ielem(n,iconsidered)%iorder,Iconsidered,ielem(n,iconsidered)%idegfree)
- compwrt=0
    do ixg=1,ielem(n,iconsidered)%idegfree
    SUMF=SUMF+polyfun(ixg)
    end do
@@ -99,12 +101,11 @@ end if
 end if
 
 IF (INITCOND.EQ.2)THEN
-    LINEAR_INIT2d= (SIN((2.0D0*PI)*(POX(1)))) * (SIN((2.0D0*PI)*(POY(1))))
+LINEAR_INIT2d=(SIN((2.0D0*PI)*(POX(1))))*(SIN((2.0D0*PI)*(POY(1))))
+ 
+!linear_init2d=1.0d0
 end if
 
-IF (INITCOND.EQ.100)THEN
-    LINEAR_INIT2d = 1.0d0
-end if
 
 END FUNCTION LINEAR_INIT2D
  

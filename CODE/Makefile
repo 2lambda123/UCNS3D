@@ -30,7 +30,7 @@ OFLAGS=
 FFLAGS=-i4 -r8 -O0  -g  -debug all -xHost -traceback -qopenmp -qopenmp-link=static $(BLASFLAGS) -check bounds -fp-model strict -debug inline-debug-info -zero 
 # production run
 #FFLAGS=-i4 -r8 -ipo -march=core-avx2 -mtune=core-avx2 -O3 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)  #amd zen
-# FFLAGS=-i4 -r8 -ipo -xHost -O2 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)
+FFLAGS=-i4 -r8 -ipo -xHost -O2 -fp-model precise -zero -qopenmp  -qopenmp-link=static $(BLASFLAGS)
 
 
 #gfortran

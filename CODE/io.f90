@@ -1113,7 +1113,9 @@ Valuelocation(:)=0
 
     IF (ITESTCASE.LE.2)THEN
 		DO I=1,KMAXE
-		  VALUESS(i)=U_C(I)%VAL(1,1)!0.0
+		 
+     VALUESS(i)=U_C(I)%VAL(1,1)!0.0
+    
 		END DO
 		
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1127,7 +1129,9 @@ Valuelocation(:)=0
 
     
 		DO I=1,KMAXE
-		  VALUESS(i)=n
+		
+      VALUESS(i)=ielem(n,i)%inumneighbours
+     
 		END DO
 		
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1167,11 +1171,16 @@ Valuelocation(:)=0
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,5
 		    DO I=1,KMAXE
-		    leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		    
+            
+            leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+            
 		    CALL CONS2PRIM2(N)
 		      VALUESS(i)=leftv(kkd)
 			if (kkd.eq.5)then
-			VALUESS(i)=U_C(I)%VAL(1,kkd)!/U_C(I)%VAL(1,1)
+			
+            VALUESS(i)=U_C(I)%VAL(1,kkd)
+           
 			end if
 		    END DO
 		    
@@ -1188,7 +1197,9 @@ Valuelocation(:)=0
 		
     
 		DO I=1,KMAXE
-		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		      
+            leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+            
 		  CALL CONS2PRIM(N)
 		  VALUESS(i)=leftv(5)
 		END DO
@@ -2751,7 +2762,7 @@ IMPLICIT NONE
 INTEGER::KMAXE,KK,KFK,ICPUID,L,IHGT,IHGJ,kkd
 REAL::X,Y,Z,DENOMINATOR,TUY,TVX,TWX,TUZ,TVZ,TWY,SNORM,ONORM
 REAL,ALLOCATABLE,DIMENSION(:)::IFINT,TFINT,NDR,NDS
-INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD
+INTEGER::INEEDT,JJ,IX,IX1,I1,I2,I3,I4,I5,DECOMF,KD, I_DOF
 REAL,allocatable,DIMENSION(:)::VARIABLES
 REAL,DIMENSION(3,3)::AVORT,TVORT,SVORT,OVORT
 INTEGER::INX,I,K,J,M,O,P,Q,JK,imax,jmax,kmax,igf,igf2,DUMG,DUML,IMAXP,nvar1
@@ -2987,9 +2998,16 @@ Valuelocation(:)=0
 
     IF (ITESTCASE.LE.2)THEN
         IF (DG == 1) THEN
-            VALUESS(1:KMAXE)=U_C(1:KMAXE)%VALDG(1,1,1)
+!         DO I_DOF = 1, IELEM(N,ICONSIDERED)%IDEGFREE + 1
+            do i=1,kmaxe
+            VALUESS(i)=U_CX(I)%VAL(1,1)!U_C(i)%VALDG(1,1,1)
+            end do
+!         END DO
+            
         ELSE
-            VALUESS(1:KMAXE)=U_C(1:KMAXE)%VAL(1,1)!0.0
+         do i=1,kmaxe
+            VALUESS(i)=U_C(i)%VAL(1,1)!0.0
+            end do
         END IF
         
         call MPI_GATHER(VALUESS,IMAXP,MPI_DOUBLE_PRECISION,VALUESA,imaxp,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3408,12 +3426,12 @@ Valuelocation(:)=0
                     Null, &
                     ShrConn)
 
+allocate(xbin(1:imaxe),xbin2(1:imaxe))
+END IF
+  
 
 
-  allocate(xbin(1:imaxe),xbin2(1:imaxe))
-
-
- END IF
+ 
  
   allocate(valuess(1:kmaxe))
   
@@ -3423,8 +3441,7 @@ Valuelocation(:)=0
 
     IF (ITESTCASE.LE.2)THEN
     DO I=1,KMAXE
-      VALUESS(i)=U_C(I)%VALDG(1,1,1)!0.0
-     
+     VALUESS(i)=U_C(I)%VAL(1,1)!0.0
     END DO
     
     call MPI_GATHERv(valuess(1:kmaxe),kmaxe,MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3447,7 +3464,9 @@ Valuelocation(:)=0
     
     
     DO I=1,KMAXE
-      VALUESS(i)=ielem(n,i)%inumneighbours
+        
+      VALUESS(i)=ielem(n,i)%TROUBLED
+      
     END DO
     
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -3498,11 +3517,17 @@ Valuelocation(:)=0
     IF (ITESTCASE.ge.3)THEN
 		do kkd=1,4
 		DO I=1,KMAXE
-          leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+        
+        leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+        
 		  CALL CONS2PRIM2D(N)
 		  VALUESS(i)=leftv(kkd)
           if (KKD.EQ.4)THEN
-          VALUESS(i)=U_C(I)%VAL(1,KKD)
+          
+        
+        VALUESS(i)=U_C(I)%VAL(1,KKD)
+        
+          
           END IF
 		END DO
 		
@@ -3518,7 +3543,9 @@ Valuelocation(:)=0
 		end do
     
 		DO I=1,KMAXE
-		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+		 
+        leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
+        
 		  CALL CONS2PRIM2D(N)
 		  VALUESS(i)=leftv(4)
 		END DO
@@ -3562,7 +3589,7 @@ Valuelocation(:)=0
                 ELSE
                 
                 DO I=1,KMAXE
-                VALUESS(i)=IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=IELEM(N,I)%TROUBLED
                 END DO
                 END IF
                 end if
@@ -14645,7 +14672,7 @@ SUBROUTINE CALCULATE_ERROR(N)
 	L0NORM=ZERO;STENNORM=ZERO;L1NORM=ZERO
 	ind_er=1
 	if (multispecies.eq.1)then
-        ind_er=nof_variables
+	ind_er=nof_variables
 	end if
 	  !$OMP MASTER
 	  CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
@@ -14655,12 +14682,11 @@ SUBROUTINE CALCULATE_ERROR(N)
 			!$OMP DO REDUCTION (+:L1NORM)
 			DO I=1,KMAXE
 				IF (ITESTCASE.Le.3)THEN
-                    EXACT=U_E(I)%VAL(1,ind_er)
-                    IF (DG == 1) THEN
-                        APROXIMATE=U_C(I)%VALDG(1,ind_er,1)
-                    ELSE
-                        APROXIMATE=U_C(I)%VAL(1,ind_er)
-                    END IF
+				
+				EXACT=U_E(I)%VAL(1,ind_er)
+				
+				APROXIMATE=U_C(I)%VAL(1,ind_er)
+				
 ! 					IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM(N,1))THEN
 ! 					L0NORM(N,1)=ABS(APROXIMATE-EXACT)
 ! 					END IF
@@ -14670,35 +14696,37 @@ SUBROUTINE CALCULATE_ERROR(N)
  			!$OMP END DO 
  			
  			if (initcond.eq.0)then
-                !$OMP DO REDUCTION (+:L0NORM)
-                DO I=1,KMAXE
-                    IF (ITESTCASE.Le.3)THEN
-    ! 				condm(2)=ilocal_recon3(i)%cond(2)
-    ! 				L0NORM=ilocal_recon3(i)%cond(1)
-    ! 					IF (maxval(condm).GT.L0NORM)THEN
-                        L0NORM=L0NORM+abs(ilocal_recon3(i)%cond(1))
-    ! 					END IF
-    ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
-                    END IF
-                END DO
-                !$OMP END DO 
+ 			!$OMP DO REDUCTION (+:L0NORM)
+			DO I=1,KMAXE
+				IF (ITESTCASE.Le.3)THEN
+! 				condm(2)=ilocal_recon3(i)%cond(2)
+! 				L0NORM=ilocal_recon3(i)%cond(1)
+! 					IF (maxval(condm).GT.L0NORM)THEN
+					L0NORM=L0NORM+abs(ilocal_recon3(i)%cond(1))
+! 					END IF
+! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
+				END IF
+ 			END DO
+ 			!$OMP END DO 
  			ELSE
-                !$OMP DO REDUCTION (MAX:L0NORM)
-                DO I=1,KMAXE
-                    IF (ITESTCASE.Le.3)THEN
-                        EXACT=U_E(I)%VAL(1,ind_er)
-                        IF (DG == 1) THEN
-                            APROXIMATE=U_C(I)%VALDG(1,ind_er,1)
-                        ELSE
-                            APROXIMATE=U_C(I)%VAL(1,ind_er)
-                        END IF
-                        IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM)THEN
-                            L0NORM=ABS(APROXIMATE-EXACT)
-                        END IF
-    ! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATpX4&feature=sharepX4&feature=shareE-EXACT)))
-                    END IF
-                END DO
-                !$OMP END DO
+ 			!$OMP DO REDUCTION (MAX:L0NORM)
+			DO I=1,KMAXE
+				IF (ITESTCASE.Le.3)THEN
+				EXACT=U_E(I)%VAL(1,ind_er)
+				
+				
+				APROXIMATE=U_C(I)%VAL(1,ind_er)
+				
+					IF ((ABS(APROXIMATE-EXACT)).GT.L0NORM)THEN
+					L0NORM=ABS(APROXIMATE-EXACT)
+					END IF
+! 					L1NORM(N,1)=L1NORM(N,1)+((ABS(APROXIMATE-EXACT)))
+				END IF
+ 			END DO
+ 			!$OMP END DO 
+ 			
+ 			
+ 			
  			END IF
  			IF (INITCOND.EQ.3)THEN
  			L0NORM=ZERO;L1NORM=TOLBIG
@@ -14782,7 +14810,6 @@ SUBROUTINE CALCULATE_ERROR(N)
  			CPUX3(1) = MPI_Wtime()
  			if (n.eq.0)then
 			OPEN(30,FILE='Errors.dat',FORM='FORMATTED',ACTION='write',position='append')
-! 			WRITE(30,*) 'Num elems    ','iorder   ','spatiladiscret    ','L1NORM    ','L2norm    ','STENNORM/IMAXE    ','(CPUX3(1)-CPUX2(1))*isize'
 			if (initcond.eq.1)then
 			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,iorder,spatiladiscret,L0NORM,STENNORM/IMAXE
 			

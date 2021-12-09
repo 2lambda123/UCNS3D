@@ -23,6 +23,15 @@ IMPLICIT NONE
 
 
  CONTAINS
+ 
+ 
+SUBROUTINE SOLUTION_INTEG
+ IMPLICIT NONE
+ 
+ SOLUTION_INTEG2=DG_VOL_INTEGRAL2(N)
+ 
+ 
+ END SUBROUTINE SOLUTION_INTEG
 
 SUBROUTINE CALCULATE_FLUXESHI(N)
 !> @brief
@@ -43,6 +52,20 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 
 	!$OMP DO SCHEDULE (STATIC)
 	DO I=1,KMAXE
+	
+        iconsidered=i
+        if (dg.eq.1)then
+        RHS(I)%VALDG = ZERO
+        DG_RHS = ZERO
+        DG_RHS_SURF_INTEG = ZERO
+        DG_RHS_VOL_INTEG = ZERO
+        end if
+	
+        IF (DG.EQ.1) THEN
+            DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+            
+        END IF
+	
 				  
 		IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
 		    RHS(I)%VAL(1)=ZERO
@@ -51,21 +74,42 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 				  GODFLUX2=ZERO
 				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
 				  ANGLE2=IELEM(N,I)%FACEANGLEY(L)
-				  
+				  facex=l
 				  NORMALVECT=((COS(ANGLE1)*SIN(ANGLE2))*LAMX)+((SIN(ANGLE1)*SIN(ANGLE2))*LAMY)+((COS(ANGLE2))*LAMZ)
 				  if (ielem(n,i)%types_faces(L).eq.5)then
 					iqp=qp_quad
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_Q(1:IQP)
+					
 				  else
 					iqp=QP_TRIANGLE
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 				  end if
+				  
+				  if (dg.eq.1)WEIGHTS_dg(1:iqp)=WEIGHTS_TEMP(1:IQP)
+				  
 				  do NGP=1,iqp
+				  pointx=ngp
+				  IF (DG.EQ.1) THEN
+                        CLEFT = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                    ELSE !FV
+				  
+				  
+				  
 				      CLEFT(1)=ILOCAL_RECON3(I)%ULEFT(1,L,NGP)
 				      CRIGHT(1)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1,IELEM(N,I)%INEIGHN(L),NGP)
-
+                    end if
 				      CALL EXACT_RIEMANN_SOLVER(N,CLEFT,CRIGHT,NORMALVECT,HLLCFLUX)
-				      GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))	 								      
+				      if (dg.eq.1)then
+				      RHLLCFLUX(1)=HLLCFLUX(1)
+				      
+				      DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+				      
+				      
+				      
+				      else
+				      GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      end if
 				  END DO
 				    RHS(I)%VAL(1)=RHS(I)%VAL(1)+GODFLUX2
 
@@ -75,7 +119,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 		    RHS(I)%VAL(1)=ZERO
 		    
 		    DO L=1,IELEM(N,I)%IFCA
-				      
+				      facex=l
 				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
 				  ANGLE2=IELEM(N,I)%FACEANGLEY(L)
 				  NORMALVECT=((COS(ANGLE1)*SIN(ANGLE2))*LAMX)+((SIN(ANGLE1)*SIN(ANGLE2))*LAMY)+((COS(ANGLE2))*LAMZ)
@@ -87,44 +131,85 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 					iqp=QP_TRIANGLE
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 				  end if
+				  
+				  
+				   if (dg.eq.1)WEIGHTS_dg(1:iqp)=WEIGHTS_TEMP(1:IQP)
 				  GODFLUX2=ZERO
 				  do NGP=1,iqp
+				  POINTX = NGP
+                    IF (DG == 1) THEN
+                        CLEFT(1:nof_variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        else
 				      CLEFT(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_variables,L,NGP)
+				      end if
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
                                  
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:nof_variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_variables,IELEM(N,I)%INEIGHN(L),NGP)
-								
+								 IF (DG == 1) THEN
+                                    CRIGHT = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                ELSE  
+                                CRIGHT(1:nof_variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_variables,IELEM(N,I)%INEIGHN(L),NGP)
+								end if
 								  ELSE
 								  !NOT PERIODIC ONES IN MY CPU
 								  CRIGHT(1:nof_variables)=CLEFT(1:nof_variables)
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:nof_variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_variables,IELEM(N,I)%INEIGHN(L),NGP)
+							     IF (DG == 1) THEN
+                                CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+!                                 WRITE(500+N,*)'my cpu not boundary'
+                            ELSE  
+                            CRIGHT(1:nof_variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_variables,IELEM(N,I)%INEIGHN(L),NGP)
+                            end if
 							END IF
 					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
-								
+									 IF (DG == 1) THEN
+                                    CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                else 
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								end if
 								END IF
 							ELSE 								
-								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								 IF (DG == 1) THEN
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                else
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                end if
 ! 								   
 							END IF
 					    END IF
 				      
 				      CALL EXACT_RIEMANN_SOLVER(N,CLEFT,CRIGHT,NORMALVECT,HLLCFLUX)
+				      
+				      if (dg.eq.1)then
+				      RHLLCFLUX(1)=HLLCFLUX(1)
+				      DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+				      
+				       
+				      
+				      else
+				      
 				      GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))	
+				      
+				      end if
 				  END DO
 				    RHS(I)%VAL(1)=RHS(I)%VAL(1)+GODFLUX2
 				    
 		    END DO
 		END IF
 ! 				
+        IF (DG.eq.1)then
+        DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+        RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
+
+        end if
+
+
 	END DO
 	!$OMP END DO 
 END SUBROUTINE CALCULATE_FLUXESHI
@@ -140,12 +225,14 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL::GODFLUX2,sum_detect
-	INTEGER::I,L,K,NGP,KMAXE,IQP
-	REAL,DIMENSION(NUM_DG_DOFS, NOF_VARIABLES)::DG_RHS, DG_RHS_VOL_INTEG, DG_RHS_SURF_INTEG
+	INTEGER::I,L,K,NGP,KMAXE,IQP, NEIGHBOR_INDEX, NEIGHBOR_FACE_INDEX
+	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_TEMP_LINE !Quadrature weights for interfaces
+	
 	
 	KMAXE = XMPIELRANK(N)
 	
 	CALL QUADRATURELINE(N,IGQRULES)
+	WEIGHTS_TEMP_LINE = WEQUA2D(1:QP_LINE_N)
 	
 	!$OMP DO SCHEDULE (STATIC)
 	DO I=1,KMAXE
@@ -155,16 +242,21 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
             lamy=ielem(n,i)%xxc-0.5
         end if
         
-        RHS(I)%VAL=ZERO
+        
+        if (dg.eq.1)then
         RHS(I)%VALDG = ZERO
         DG_RHS = ZERO
         DG_RHS_SURF_INTEG = ZERO
         DG_RHS_VOL_INTEG = ZERO
+        else
+        RHS(I)%VAL=ZERO
+        end if
+        
+        
         ICONSIDERED=I
         
         IF (DG.EQ.1) THEN
             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
-!             IF (N == 0 .AND. I == 1) WRITE(500+N,*) 'DG_RHS_VOL_INTEGRAL', I, DG_RHS_VOL_INTEG
         END IF
         
 		IF (IELEM(N,I)%INTERIOR.EQ.0)THEN ! Element is interior
@@ -177,6 +269,9 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                 NORMALVECT=(NX*LAMX)+(NY*LAMY)
 
                 IQP=QP_LINE_N
+                
+                NEIGHBOR_INDEX = IELEM(N,I)%INEIGH(L)
+                NEIGHBOR_FACE_INDEX = IELEM(N,I)%INEIGHN(L)
                 
                 DO NGP=1,IQP
                     POINTX=NGP
@@ -192,11 +287,14 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 
                     IF (DG.EQ.1) THEN
                         ! Riemann flux at interface quadrature points times basis
+                        RHLLCFLUX(1)=HLLCFLUX(1)
+                         
                         DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
-                  
-!                         IF (N == 0 .AND. I == 1) WRITE(500+N,*) 'INTERIOR:', I, L, NGP, IELEM(N,I)%INEIGH(L), 'HLLCFLUX:', HLLCFLUX, 'NOMRALVECT:', NORMALVECT, 'CLEFT:', CLEFT, 'CRIGHT:', CRIGHT, 'DG_SURF_INT:', DG_SURF_FLUX(N)
+                       
+                         
+!                         IF (I == 1) !WRITE(600+N,*) 'INTERIOR:', I, L, NGP, IELEM(N,I)%INEIGH(L), 'HLLCFLUX:', HLLCFLUX, 'NOMRALVECT:', NORMALVECT, 'CLEFT:', CLEFT, 'CRIGHT:', CRIGHT, 'DG_SURF_INT:', DG_SURF_FLUX(N)
                     ELSE !FV
-                        GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEQUA2D(NGP)*IELEM(N,I)%SURF(L)))
+                        GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP_LINE(NGP)*IELEM(N,I)%SURF(L)))
                     END IF
                 END DO
                 
@@ -264,11 +362,13 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                     
                     IF (DG.EQ.1) THEN
                         !Riemann flux at interface quadrature points times basis
+                        RHLLCFLUX(1)=HLLCFLUX(1)
                          DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+                         
 
-!                         IF (I == 1) WRITE(600+N,*) 'BOUNDARY:', I, L, NGP, IELEM(N,I)%INEIGH(L), 'HLLCFLUX:', HLLCFLUX, 'NOMRALVECT:', NORMALVECT, 'CLEFT:', CLEFT, 'CRIGHT:', CRIGHT, 'dg_int', DG_RHS_INTEGRAL(N, I, ILOCAL_RECON3(I)%QPOINTS(L,NGP,1), ILOCAL_RECON3(I)%QPOINTS(L,NGP,2), WEQUA2D(NGP), NOF_VARIABLES, IELEM(N,I)%IORDER, IELEM(N,I)%IDEGFREE, IELEM(N,I)%SURF(L), HLLCFLUX, 2)
+
                     ELSE !FV
-                        GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEQUA2D(NGP)*IELEM(N,I)%SURF(L)))
+                        GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP_LINE(NGP)*IELEM(N,I)%SURF(L)))
                     END IF
   
                 END DO
@@ -277,15 +377,14 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 		    END DO
 		END IF
 		
-		IF (DG == 1) THEN
-            DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
-            RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
-            IF (N == 0 .AND. I == 1) THEN
-!                 WRITE(500+N,*) "ELEM",I,"DG_SURF_INTEG:", DG_RHS_SURF_INTEG
-!                 WRITE(500+N,*) "DG_VOL_INTEG:", DG_RHS_VOL_INTEG
-!                 WRITE(500+N,*) "DG_RHS:", DG_RHS
-            END IF
-        END IF
+		
+		IF (DG == 1) DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+		
+        IF (DG == 1) RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
+        
+! 		WRITE(500+N,*) "ELEM",I,"DG_SURF_INTEG:", DG_RHS_SURF_INTEG
+! 		WRITE(500+N,*) "DG_VOL_INTEG:", DG_RHS_VOL_INTEG
+! 		WRITE(500+N,*) "DG_RHS:", DG_RHS
 		
 	END DO
 	!$OMP END DO 
@@ -298,7 +397,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
 	INTEGER::I,L,NGP,KMAXE,IQP,ii,IKAS,igoflux, icaseb
-	REAL::sum_detect,NORMS
+	REAL::sum_detect,NORMS	
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
 	KMAXE=XMPIELRANK(N)
 	
@@ -317,6 +416,13 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	
         do i=1,xmpielrank(n)
             RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
+            
+                
+            if (dg.eq.1)then
+            RHS(I)%VALDG = ZERO
+            end if
+            
+          
         end do
         !$OMP BARRIER
 	!$OMP DO SCHEDULE (STATIC)
@@ -325,7 +431,15 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	ICONSIDERED=I
             MP_SOURCE3=ZERO        
 		    B_CODE=0
-		    
+		     IF (DG.EQ.1) THEN
+            DG_RHS = ZERO
+            DG_RHS_SURF_INTEG = ZERO
+            DG_RHS_VOL_INTEG = ZERO
+            
+             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+                
+            END IF
+            
 		    
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 !                                      IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
@@ -343,9 +457,22 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					iqp=QP_TRIANGLE_n
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 				  end if
+				  
+				  facex=l
+				  if (dg.eq.1)WEIGHTS_dg(1:iqp)=WEIGHTS_TEMP(1:IQP)
+				  
 				  do NGP=1,iqp	!for all the gaussian quadrature points
+				  pointx=ngp
+				  
+                      IF (DG.EQ.1) THEN
+                        CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                    ELSE !FV
+				  
 				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
 				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				      
+				      END IF
 				      
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.1)then
@@ -424,11 +551,25 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				      
 				       END SELECT
 				       
-				       
+				      if (dg.eq.1)then
+				      
+				      DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+				      
+				      
+				      
+				      else 
 				       
 				       
 				      
 				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      
+				      end if
+				      
+				      
+				      
+				      
+				      
+				      
 				      IF (MULTISPECIES.EQ.1)THEN
                         MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
                         END IF
@@ -485,6 +626,14 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                  RHS(I)%VAL(8)=RHS(I)%VAL(8)-(U_C(I)%VAL(1,8)*MP_SOURCE3)
                  
                  END IF
+                 
+                 IF (DG.eq.1)then
+                    DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+                    RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
+
+                    end if
+                 
+                 
 	END DO
 	!$OMP END DO
 	
@@ -494,9 +643,17 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	I=EL_BND(II)
 	ICONSIDERED=I	
 		 MP_SOURCE3=ZERO		
-		   
+		    IF (DG.EQ.1) THEN
+            DG_RHS = ZERO
+            DG_RHS_SURF_INTEG = ZERO
+            DG_RHS_VOL_INTEG = ZERO
+            
+             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+                
+            END IF
 		    
 		    DO L=1,IELEM(N,I)%IFCA
+		    FACEX=L
                         igoflux=0
 		     IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
@@ -550,14 +707,25 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					iqp=QP_TRIANGLE_n
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 				  end if
+				  
+				  if (dg.eq.1)WEIGHTS_dg(1:iqp)=WEIGHTS_TEMP(1:IQP)
+				  
 				  GODFLUX2=ZERO
 				  
 				   MP_SOURCE2=ZERO
 								  
 				  
 				  do NGP=1,iqp
+				  POINTX = NGP
+				  
 				      B_CODE=0
+				      
+				      IF (DG == 1) THEN
+                        CLEFT(1:nof_variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        else
 				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+				      END IF
+				      
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						if (icoupleturb.eq.1)then
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
@@ -570,7 +738,11 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+								 IF (DG == 1) THEN
+                                    CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                    ELSE
+                                    CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                    END IF
 								  
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -607,7 +779,13 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 								    
 								  END IF
 							ELSE
+							
+							
+                                   IF (DG == 1) THEN
+                                CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                ELSE
 							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+							      END IF
 							      
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -631,7 +809,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+								 IF (DG == 1) THEN
+                                    CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								ELSE
+								
 									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                END IF
 									   
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -647,9 +830,11 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 
 								END IF
 							ELSE 			
-							
+                                   IF (DG == 1) THEN
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                ELSE
 								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
-								  
+								  END IF
 								  
 ! 								 
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -765,9 +950,17 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				      
 				       END SELECT
 				       
-				     
+				     if (dg.eq.1)then
+				      DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+				      
+				       
+				      
+				      else
 				      
 				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      
+				      END IF
+				      
 				      IF (MULTISPECIES.EQ.1)THEN
                         MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
                         END IF
@@ -832,6 +1025,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                  RHS(I)%VAL(8)=RHS(I)%VAL(8)-(U_C(I)%VAL(1,8)*MP_SOURCE3)
                  
                  END IF
+                 
+                    IF (DG.eq.1)then
+                    DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+                    RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
+
+                    end if
                 
 	END DO
 	!$OMP END DO
@@ -845,7 +1044,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 	IMPLICIT NONE
 	INTEGER,INTENT(IN)::N
 	REAL,DIMENSION(1:NOF_variables+TURBULENCEEQUATIONS+PASSIVESCALAR)::GODFLUX2
-	INTEGER::I,L,NGP,KMAXE,IQP,ii,IKAS,igoflux, icaseb
+	INTEGER::I,L,NGP,KMAXE,IQP,ii,IKAS,igoflux, icaseb,kxk
 	REAL::sum_detect,NORMS
 	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
 	KMAXE=XMPIELRANK(N)
@@ -860,6 +1059,14 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 	
 	do i=1,kmaxe
 	RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
+	
+    
+	
+	ICONSIDERED=I
+        
+        
+	
+	
 	end do
 	
 	!$OMP BARRIER
@@ -867,17 +1074,22 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
-! 		    RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
-!                     
+            IF (DG.EQ.1) THEN
+            RHS(I)%VALDG = ZERO
+            DG_RHS = ZERO
+            DG_RHS_SURF_INTEG = ZERO
+            DG_RHS_VOL_INTEG = ZERO
+            DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+                
+            END IF
+	
+
+                    
                 MP_SOURCE3=ZERO     
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
-		    if (IELEM(N,I)%REORIENT(l).eq.IELEM(N,IELEM(N,I)%INEIGH(L))%REORIENT(IELEM(N,I)%INEIGHN(L)))then
 		    
-		     
-		     end if
-!                               IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
-                                
-                                
+		    FACEX=L
+
 				  GODFLUX2=ZERO
 				  MP_SOURCE2=ZERO
  				  nx=IELEM(N,I)%FACEANGLEX(L)
@@ -888,8 +1100,16 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 					iqp=qp_line_n
 				
 				  do NGP=1,iqp	!for all the gaussian quadrature points
-				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
-				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+				  POINTX=NGP
+                        IF (DG.EQ.1) THEN
+                        CLEFT(1:nof_Variables)= ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES,IELEM(N,I)%INEIGHN(L), NGP)
+                        ELSE !FV
+				  
+                        CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+                        CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+                        
+                        END IF
 ! 				      
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.1)then
@@ -931,7 +1151,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      CASE(2)			!rusanov
 				      
 				      CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
-				       CALL ROTATEB2d(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
+                      CALL ROTATEB2d(N,INVTRI,RHLLCFLUX,HLLCFLUX,ANGLE1,ANGLE2)
 				      
 				       if ((turbulence.eq.1).or.(passivescalar.gt.0))then
 				      
@@ -961,10 +1181,22 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				       
 				       
 				       
-				       
+				       IF (DG.EQ.1) THEN
+                        ! Riemann flux at interface quadrature points times basis
+                         
+
+                         
+                        DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+                       
+                         
+
+                    ELSE !FV
 				       
 				      
 				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      
+				      END IF
+				      
 				       IF (MULTISPECIES.EQ.1)THEN
                         MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
                         END IF
@@ -996,12 +1228,10 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
                         END IF
 				    
 				    
-! 				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
-! 				    RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
-!  				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
+
 ! 				    
 				    END IF
 ! 				    end if
@@ -1010,6 +1240,21 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
                  RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)!*ielem(n,I)%totvolume)
                  
                  END IF
+                 
+               IF (DG == 1) THEN
+
+               
+                  
+               
+               DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+                RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS  
+                
+                
+                
+              
+                 END IF
+                 
+                 
 	END DO
 	!$OMP END DO
 	
@@ -1019,10 +1264,20 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 	I=EL_BND(II)
 	ICONSIDERED=I	
 	MP_SOURCE3=ZERO  
+	
+            IF (DG.EQ.1) THEN
+            rhs(i)%valdg=zero
+            DG_RHS = ZERO
+            DG_RHS_SURF_INTEG = ZERO
+            DG_RHS_VOL_INTEG = ZERO
+            DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+                
+            END IF
 				
-! 		    RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
+
 		    
 		    DO L=1,IELEM(N,I)%IFCA
+		    FACEX=L
 				  igoflux=0
 				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
                                                     IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
@@ -1062,7 +1317,17 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				  GODFLUX2=ZERO
 				  MP_SOURCE2=ZERO
 				  do NGP=1,iqp
+				  POINTX=NGP
+				  
+				  
+				  
+                    IF (DG == 1) THEN
+                        CLEFT(1:nof_Variables)= ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                    ELSE
+				  
 				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)
+				      
+                    END IF
 				      
 					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						if (icoupleturb.eq.1)then
@@ -1076,15 +1341,22 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                        IF (DG == 1) THEN
+                                            CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                        ELSE !FV
+                                            CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                        END IF
 								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-									if (icoupleturb.eq.1)then
-									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
-									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
-									ELSE
-									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
-									END IF
+                                        if (icoupleturb.eq.1)then
+                                        CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+                                        (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+                                        ELSE
+                                        CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+                                        END IF
 								    END IF
+								  
+								  
+								  
 								  
 								  
 								  IKAS=1
@@ -1111,7 +1383,12 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 								    
 								  END IF
 							ELSE
-							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                    IF (DG == 1) THEN
+                                        CRIGHT(1:nof_Variables)= ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+        !                                 
+                                    ELSE !FV
+                                        CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                    END IF
  							     
 								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
@@ -1135,8 +1412,11 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
- 									   
+                                        IF (DG == 1) THEN
+                                            CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                        else
+                                            CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+ 									   END IF
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
@@ -1155,9 +1435,11 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 
 								END IF
 							ELSE 			
-							
-								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
- 								  
+                                    IF (DG == 1) THEN
+                                        CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                    ELSE
+                                        CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                    END IF
 								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 									if (icoupleturb.eq.1)then
 									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
@@ -1248,8 +1530,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      RHLLCFLUX=HLLCFLUX
 				      ELSE
 				      
-! 				      CALL ROTATEF2d(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-!                                       CALL ROTATEF2d(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)
+
 				     
 				      
 				      CALL RUSANOV_RIEMANN_SOLVER2d(N,CLEFT_ROT,CRIGHT_ROT,HLLCFLUX,ROTVL,ROTVR,GAMMA,SL,SR,SM)
@@ -1262,9 +1543,16 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				      
 				       END SELECT
 				       
-				     
+				      IF (DG.EQ.1) THEN
+                        
+                         DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+                         
+                         ELSE
 				      
-				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+                         GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(RHLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+				      END IF
+				      
+				      
 				      IF (MULTISPECIES.EQ.1)THEN
                         MP_SOURCE2=MP_SOURCE2+MP_SOURCE1*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L))
                         END IF
@@ -1299,24 +1587,29 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
 				    IF (MULTISPECIES.EQ.1)THEN
                         MP_SOURCE3=MP_SOURCE3+MP_SOURCE2
                         END IF
-! 				    if ((igoflux.eq.1))then
-! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
-! 				    end if
+
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)+&
 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
-! 				     if ((igoflux.eq.1))then
-! 				     RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(IELEM(N,I)%INEIGH(L))%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
-! 				    GODFLUX2(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)
-! 				    end if
-! 				    end if
+
 				    end if
 		    END DO
 		     IF (MULTISPECIES.EQ.1)THEN
                  RHS(I)%VAL(7)=RHS(I)%VAL(7)-(U_C(I)%VAL(1,7)*MP_SOURCE3)!*ielem(n,I)%totvolume)
                  
                  END IF
+                 
+                  IF (DG == 1) THEN
+                
+               DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+                RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS  
+               
+                
+                 END IF
+                 
+                 
+                 
 	END DO
 	!$OMP END DO
 
