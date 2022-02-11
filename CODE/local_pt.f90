@@ -1662,7 +1662,10 @@ i=iconsi
 		
 		  ILOCAL_RECON3(I)%INVCCJAC(1:2,1:2)=VVa1(1:2,1:2)
 		  
-		  !wrtie ede pamee
+		  
+		  
+		  
+		  
 		  
 		  
 		 
@@ -1686,8 +1689,20 @@ i=iconsi
 		  
 		  
 		  
-		  detjc=deta(1)
+            detjc=deta(1)
 		    ILOCAL_RECON3(I)%VEXT_REF(1:2)=VEXT(1,1:2)
+		    
+		    if (gridar1.gt.20)then
+		    ILOCAL_RECON3(I)%INVCCJAC(1:2,1:2)=zero
+		     ILOCAL_RECON3(I)%INVCCJAC(1,1)=1.0d0
+		      ILOCAL_RECON3(I)%INVCCJAC(2,2)=1.0d0
+		      detjc=1.0
+		      VEXT(1,1)=ielem(n,i)%xxc
+		      VEXT(1,2)=ielem(n,i)%yyc
+		      ILOCAL_RECON3(I)%VEXT_REF(1:2)=VEXT(1,1:2)
+		    end if
+		    
+		    
 		  DO JJ=1,IELEM(N,I)%ADMIS
                             if ((EES.ne.5).or.(jj.eq.1))then
                         itarget=ielem(n,i)%iNUMNEIGHBOURS

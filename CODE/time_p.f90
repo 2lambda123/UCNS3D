@@ -60,11 +60,9 @@ KMAXE=XMPIELRANK(N)
         DO I=1,KMAXE
         
         
-        IF (DG.EQ.1)THEN
-        LEFTV(1:NOF_vARIABLES)=U_CX(I)%VAL(1,1:NOF_vARIABLES)
-        ELSE
+        
 		LEFTV(1:NOF_vARIABLES)=U_C(I)%VAL(1,1:NOF_vARIABLES)
-		END IF
+		
 		
 		CALL CONS2PRIM(N)
 		IF (multispecies.eq.1)THEN
@@ -1427,6 +1425,9 @@ DO I=1,KMAXE
 ICONSIDERED=I
   call SOLUTION_INTEG
   U_C(I)%VAL(1,:)=SOLUTION_INTEG2
+  
+!   write(320+n,*)it,IELEM(N,I)%IHEXGL,U_C(I)%VAL(1,1)-U_C(I)%VALdg(1,1,1)
+  
 END DO
 !$OMP END DO
 
@@ -1447,6 +1448,7 @@ DO I=1,KMAXE
 ICONSIDERED=I
   call SOLUTION_INTEG
   U_C(I)%VAL(1,:)=SOLUTION_INTEG2
+!    write(330+n,*)U_C(I)%VAL(1,1),U_C(I)%VALdg(1,1,1)
   U_e(I)%VAL(1,:)=U_C(I)%VAL(1,:)
 END DO
 !$OMP END DO
@@ -3943,13 +3945,10 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 					IF (INITCOND.eq.95)THEN                    
  				TOTK=0
  				DO I=1,xmpielrank(n)
-                    if (dg.eq.1)then
-                    TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_Cx(I)%VAL(1,1)*(1.0/2.0)*&
-(((U_Cx(I)%VAL(1,2)/U_Cx(I)%VAL(1,1))**2)+((U_Cx(I)%VAL(1,3)/U_Cx(I)%VAL(1,1))**2)+((U_Cx(I)%VAL(1,4)/U_Cx(I)%VAL(1,1))**2))
-                    else
+                    
 					TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
 (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
-                    end if
+                    
 
 
 				END DO
@@ -4056,15 +4055,11 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
  				TOTK=0
  				DO I=1,xmpielrank(n)
  				
-                    if (dg.eq.1)then
-                        TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_Cx(I)%VAL(1,1)*(1.0/2.0)*&
-(((U_Cx(I)%VAL(1,2)/U_Cx(I)%VAL(1,1))**2)+((U_Cx(I)%VAL(1,3)/U_Cx(I)%VAL(1,1))**2)+((U_Cx(I)%VAL(1,4)/U_Cx(I)%VAL(1,1))**2))
-                        
-                    else
+                   
                     TOTK=TOTK+IELEM(N,I)%TOTVOLUME*U_C(I)%VAL(1,1)*(1.0/2.0)*&
 (((U_C(I)%VAL(1,2)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,3)/U_C(I)%VAL(1,1))**2)+((U_C(I)%VAL(1,4)/U_C(I)%VAL(1,1))**2))
                     
-                    end if
+                    
 
 
 				END DO
@@ -4255,6 +4250,7 @@ CPUT8=CPUX1(1)
 !$OMP END MASTER 
 !$OMP BARRIER
 
+
 IT=RESTART
 if (dg.eq.1)call SOL_INTEG_DG_init(N)
 !$OMP BARRIER
@@ -4278,6 +4274,13 @@ END IF
 DO
     CALL CALCULATE_CFL2D(N)
     IF (RUNGEKUTTA.GE.5) CALL CALCULATE_CFLL2d(N)
+        
+    IF (DG.EQ.1)THEN
+        DO I=1,KMAXE
+        ielem(n,i)%condition=0
+        END DO
+    END IF
+        
         
     !$OMP MASTER
     DUMMYOUT(1)=DT
@@ -4304,6 +4307,8 @@ DO
         WRITE(63,*)DT,it,"TIME STEP SIZE",T
         CLOSE(63)
     END IF
+    
+    
             
     IF (INITCOND.eq.95)THEN                    
         TOTK=0
@@ -4386,6 +4391,7 @@ DO
         
           if (dg.eq.1)call SOL_INTEG_DG(N)
         
+         
         
 ! Increment time
 
@@ -4397,7 +4403,13 @@ DO
         T=T+DT
         tz1=tz1+DT
     END IF
-
+          
+          
+          IF (DG.EQ.1)THEN
+          IF (CODE_PROFILE.EQ.101)THEN
+            CALL TROUBLED_HISTORY
+          END IF
+          END IF
     
 ! Write output
 

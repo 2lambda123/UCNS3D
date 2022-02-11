@@ -21,6 +21,7 @@ REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
 INTEGER,INTENT(IN)::N
 INTEGER::I_DOF, I_VAR
 REAL,DIMENSION(Nof_VARIABLES)::DG_SOL
+REAL,external:: ddot
 
  compwrt=-2
 NUMBER=IELEM(N,ICONSIDERED)%IORDER
@@ -31,8 +32,11 @@ else
 BASIS_TEMP = BASIS_REC(N, X1, Y1,z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
 end if
 
+
+
 DO I_VAR = 1, NOF_VARIABLES
-    DG_SOL(I_VAR) = U_C(ICONSIDERED)%VALDG(1,I_VAR,1)+ DOT_PRODUCT(BASIS_TEMP(1:NUMBER_OF_DOG),U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1))
+    DG_SOL(I_VAR) = U_C(ICONSIDERED)%VALDG(1,I_VAR,1)+ DDOT(NUMBER_OF_DOG,BASIS_TEMP(1:NUMBER_OF_DOG),1,U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1),1)
+!     DOT_PRODUCT(BASIS_TEMP(1:NUMBER_OF_DOG),U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1))
 END DO
 
  compwrt=0
@@ -50,6 +54,7 @@ REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
 INTEGER::I_DOF, I_VAR
 INTEGER,INTENT(IN)::N
 REAL,DIMENSION(1:nof_Variables)::DG_SOLFACE
+REAL,external:: ddot
 
  compwrt=-2
 
@@ -76,7 +81,10 @@ end if
 
 
 DO I_VAR = 1, NOF_VARIABLES
-    DG_SOLFACE(I_VAR) = U_C(ICONSIDERED)%VALDG(1,I_VAR,1) + DOT_PRODUCT(BASIS_TEMP(1:NUMBER_OF_DOG), U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1))
+    DG_SOLFACE(I_VAR) = U_C(ICONSIDERED)%VALDG(1,I_VAR,1) + DDOT(NUMBER_OF_DOG,BASIS_TEMP(1:NUMBER_OF_DOG),1,U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1),1)
+!     
+!     
+!     DOT_PRODUCT(BASIS_TEMP(1:NUMBER_OF_DOG), U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1))
     
 END DO
 
@@ -162,7 +170,7 @@ REAL::PH,INTEG
  
     DG_VOL_INTEGRAL(:,:) = 0.0d0
 
-
+     
 
       
       DO I=1,NUMBER_OF_DOG
@@ -235,10 +243,8 @@ REAL::PH,INTEG
          END DO
      END DO
 
-     if (IELEM(N,Iconsidered)%TROUBLED.eq.1)then
-!      DG_VOL_INTEGRAL(2:NUMBER_OF_DOG+1,:)=0.0
-!      u_c(iconsidered)%valdg(1,1:NOF_VARIABLES,2:NUMBER_OF_DOG+1)=0.0
-     end if
+    
+            
 
         compwrt=0
 END FUNCTION DG_VOL_INTEGRAL
@@ -298,7 +304,7 @@ REAL,DIMENSION(1:idegfree)::BASIS_TEMP
              
 
             DO I_VAR = 1, NOF_VARIABLES
-                DG_SOL2(I_VAR) = U_C(ICONSIDERED)%VALDG(1,I_VAR,1)+ DOT_PRODUCT(BASIS_TEMP(1:NUMBER_OF_DOG), U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1))
+                DG_SOL2(I_VAR) = DOT_PRODUCT(BASIS_TEMP(1:NUMBER_OF_DOG), U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUMBER_OF_DOG+1))
             END DO 
             
             
@@ -307,9 +313,14 @@ REAL,DIMENSION(1:idegfree)::BASIS_TEMP
              
 
          END DO
-     
+!             WRITE(700+N,*)"look 1",U_C(ICONSIDERED)%VALDG(1,1,1),DG_VOL_INTEGRAL2(1)
+!             write(700+n,*)"look 2",IELEM(N,ICONSIDERED)%TOTVOLUME,DG_VOL_INTEGRAL2(1)
+!             write(700+n,*)"look 3",INTEG_BASIS_DG(ICONSIDERED)%value(1:idegfree)
+!             write(700+n,*)"look 4",INTEG_BASIS(ICONSIDERED)%value(1:idegfree)
+            
+            
 ! END DO
-
+            DG_VOL_INTEGRAL2(:) =U_C(ICONSIDERED)%VALDG(1,:,1)+DG_VOL_INTEGRAL2(:)
 
     compwrt=0
 
@@ -560,7 +571,7 @@ SUBROUTINE PRESTORE_DG1
         
         
         !Store volume quadrature points
-        INTEG_BASIS_DG(ICONSIDERED)%value(1:NUMBER_OF_DOG)=zero
+        INTEG_BASIS_DG(ICONSIDERED)%value(1:IDEGFREE)=zero
         tempint=zero
         
             N_QP = ielem(n,iconsidered)%iTOTALPOINTS
@@ -583,21 +594,20 @@ SUBROUTINE PRESTORE_DG1
                     IXX=ICONSIDERED
                     
                     if (dimensiona.eq.2)then
-                    
-                    tempint(1:number_of_dog)=tempint(1:number_of_dog)+(BASIS_REC2D(N,X1,Y1,IORDER,IXX,NUMBER_OF_DOG)*QP_ARRAY(I,I_QP)%QP_WEIGHT)
+                    NUMBER=IELEM(N,ICONSIDERED)%IORDER
+                    tempint(1:IDEGFREE)=tempint(1:IDEGFREE)+(BASIS_REC2D(N,X1,Y1,number,IXX,IDEGFREE)*QP_ARRAY(I,I_QP)%QP_WEIGHT)
                     
                     else
-                    
-                    tempint(1:number_of_dog)=tempint(1:number_of_dog)+(BASIS_REC(N,X1,Y1,z1,IORDER,IXX,NUMBER_OF_DOG)*QP_ARRAY(I,I_QP)%QP_WEIGHT)
+                    NUMBER=IELEM(N,ICONSIDERED)%IORDER
+                    tempint(1:IDEGFREE)=tempint(1:IDEGFREE)+(BASIS_REC(N,X1,Y1,z1,number,IXX,IDEGFREE)*QP_ARRAY(I,I_QP)%QP_WEIGHT)
                     
                     end if
                     
                 END DO
 !                 
                 
-                INTEG_BASIS_DG(ICONSIDERED)%value(1:NUMBER_OF_DOG)=tempint(1:number_of_dog)
-        
-        
+                INTEG_BASIS_DG(ICONSIDERED)%value(1:IDEGFREE)=tempint(1:IDEGFREE)
+               
            
         
         compwrt=0
@@ -840,9 +850,11 @@ SUBROUTINE BUILD_MASS_MATRIX(N)
              end if
                     
                     if (dimensiona.eq.2)then
-                    BASIS_VECTOR(1:idegfree) = BASIS_REC2D(N,X1,Y1,IORDER,IXX,NUMBER_OF_DOG)
+                    NUMBER=IELEM(N,ICONSIDERED)%IORDER
+                    BASIS_VECTOR(1:idegfree) = BASIS_REC2D(N,X1,Y1,number,IXX,NUMBER_OF_DOG)
                     else
-                    BASIS_VECTOR(1:idegfree) = BASIS_REC(N,X1,Y1,z1,IORDER,IXX,NUMBER_OF_DOG)
+                    NUMBER=IELEM(N,ICONSIDERED)%IORDER
+                    BASIS_VECTOR(1:idegfree) = BASIS_REC(N,X1,Y1,z1,number,IXX,NUMBER_OF_DOG)
                     end if
                     
                         IF (I_DOF==1.and.J_DOF==1)THEN

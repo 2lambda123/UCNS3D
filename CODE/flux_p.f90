@@ -416,12 +416,6 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	
         do i=1,xmpielrank(n)
             RHS(I)%VAL(:)=ZERO;IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0)) RHST(I)%VAL(:)=ZERO 
-            
-                
-            if (dg.eq.1)then
-            RHS(I)%VALDG = ZERO
-            end if
-            
           
         end do
         !$OMP BARRIER
@@ -432,6 +426,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
             MP_SOURCE3=ZERO        
 		    B_CODE=0
 		     IF (DG.EQ.1) THEN
+		     RHS(I)%VALDG = ZERO
             DG_RHS = ZERO
             DG_RHS_SURF_INTEG = ZERO
             DG_RHS_VOL_INTEG = ZERO
@@ -443,6 +438,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 		    
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 !                                      IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
+            
 				  GODFLUX2=ZERO
 				  MP_SOURCE2=ZERO
  				  ANGLE1=IELEM(N,I)%FACEANGLEX(L)
@@ -644,6 +640,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 	ICONSIDERED=I	
 		 MP_SOURCE3=ZERO		
 		    IF (DG.EQ.1) THEN
+		    rhs(i)%valdg=zero
             DG_RHS = ZERO
             DG_RHS_SURF_INTEG = ZERO
             DG_RHS_VOL_INTEG = ZERO

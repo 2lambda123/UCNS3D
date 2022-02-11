@@ -847,6 +847,9 @@ i=iconsi
 		
 		
                 INTEG_BASIS(I)%VALUE(1:ielem(n,i)%IDEGFREE)=INTBS(1:ielem(n,i)%IDEGFREE)
+                
+                
+                
 		IF (IWENO.EQ.1)THEN
 		CALL INDICATORMATRIX(N,I)
 		END IF

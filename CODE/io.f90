@@ -3000,7 +3000,7 @@ Valuelocation(:)=0
         IF (DG == 1) THEN
 !         DO I_DOF = 1, IELEM(N,ICONSIDERED)%IDEGFREE + 1
             do i=1,kmaxe
-            VALUESS(i)=U_CX(I)%VAL(1,1)!U_C(i)%VALDG(1,1,1)
+            VALUESS(i)=U_C(I)%VAL(1,1)!U_C(i)%VALDG(1,1,1)
             end do
 !         END DO
             
@@ -3051,7 +3051,7 @@ Valuelocation(:)=0
 		DO I=1,KMAXE
 		  leftv(1:nof_Variables)=U_C(I)%VAL(1,1:nof_Variables)
 		  CALL CONS2PRIM2d(N)
-		  VALUESS(i)=ielem(n,i)%condition!leftv(4)
+		  VALUESS(i)=leftv(4)
 		END DO
 		
 		
@@ -3480,7 +3480,7 @@ END IF
     
     
     DO I=1,KMAXE
-      VALUESS(i)=IELEM(N,I)%ADMIS
+      VALUESS(i)=ielem(n,i)%walldist!IELEM(N,I)%ADMIS
     END DO
     
     call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -17375,6 +17375,37 @@ DEALLOCATE(VALUESS)
 
 
 END SUBROUTINE CHECKPOINTv3
+
+
+SUBROUTINE TROUBLED_HISTORY
+INTEGER::I,J,K,TRAJ1,TRAJ2,TRAJ3,TRAJ4,kmaxe,writeid,writeconf
+REAL::WIN1,WIN2,WIN3,WIN4,POST,POST1,POST2,POST3,POST4
+real,dimension(1)::pos_l,pos_g
+KMAXE=XMPIELRANK(N)
+POST1=0
+traj1=0
+pos_l(1)=zero
+pos_G(1)=zero
+DO I=1,KMAXE
+    pos_l(1)=pos_l(1)+IELEM(N,I)%CONDITION
+END DO
+
+  
+CALL MPI_ALLREDUCE(pos_l(1),pos_g(1),1,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,IERROR)
+
+IF (n.eq.0)THEN
+
+OPEN(70,FILE='TROUBLED.DAT',FORM='FORMATTED',ACTION='WRITE',POSITION='APPEND')
+WRITE(70,'(E14.7,1X,E14.7,1X,E14.7)')T,(POS_G(1)/IMAXE)*100.0
+close(70)
+
+END IF
+
+CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
+
+
+
+END SUBROUTINE TROUBLED_HISTORY
 
 
 

@@ -2558,6 +2558,10 @@ KMAXE=XMPIELRANK(N)
 
 				DO IEX=1,nof_variables	!COMPONENTS
 				
+				IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ZERO
+				END IF
+				
 				DO LL=1,IELEM(N,I)%ADMIS	!STENCILS
 				IF (EES.EQ.5)THEN
                                             IF (LL.EQ.1)THEN
@@ -2604,6 +2608,21 @@ KMAXE=XMPIELRANK(N)
 				    
 				    
 				    end if
+				    
+				    
+				    
+                IF (DG.EQ.1)THEN
+                IF (EES.EQ.5)THEN
+                    IF (LL.EQ.1)THEN
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree2,1)*WENO(IEX,LL))
+                    ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+                    END IF
+                ELSE
+                    ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+				END IF
+				END IF
+				    
 				    
 				END DO		!STENCILS
 				END DO	!COMPONENTS
@@ -3317,6 +3336,10 @@ KMAXE=XMPIELRANK(N)
 ! 				END DO		!STENCILS
                                 DO IEX=1,nof_variables	!COMPONENTS
 				ILOCAL_RECON3(I)%ULEFT(IEX,L,NGP)=ZERO
+				IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%dg2fv(1:IELEM(N,I)%IDEGFREE,IEX)=ZERO
+				END IF
+				
 				DO LL=1,IELEM(N,I)%ADMIS	!STENCILS
 				IF (EES.EQ.5)THEN
 				IF (LL.EQ.1)THEN
@@ -3354,6 +3377,18 @@ KMAXE=XMPIELRANK(N)
 				  CALL EXTRAPOLATE_BOUND(IEX,L,NGP,I,LL,ll)
 				    
 				    end if
+				    
+				    IF (DG.EQ.1)THEN
+                        IF (EES.EQ.5)THEN
+                            IF (LL.EQ.1)THEN
+                            ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree2,1)*WENO(IEX,LL))
+                            ELSE
+                            ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+                            END IF
+                        ELSE
+                            ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)+(GRADSSL(1:Idegfree,1)*WENO(IEX,LL))
+                        END IF
+                    END IF
 				    
 				END DO		!STENCILS
 				END DO	!COMPONENTS
@@ -5971,6 +6006,9 @@ call  QUADRATURELINE(N,IGQRULES)
 			 END DO
 			 
 			 do iex=1,nof_Variables
+			 
+                
+			 
 			 limvbg=tolbig
 			 DO L=1,IELEM(N,I)%IFCA	!faces2
 ! 			      if (ielem(n,i)%types_faces(L).eq.5)then
@@ -5985,6 +6023,12 @@ call  QUADRATURELINE(N,IGQRULES)
 			      end do
 			 end do
 			 WENO(IEX,1)=LIMVBG
+			 
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+			 
+			 
 			 end do
 			 
 ! 			 if (itestcase.eq.4)then
@@ -6590,6 +6634,14 @@ call  QUADRATURELINE(N,IGQRULES)
 			      end do
 			 end do
 			 WENO(IEX,1)=LIMVBG
+			 
+			 
+                IF (DG.EQ.1)THEN
+				ILOCAL_RECON6(I)%DG2FV(1:IELEM(N,I)%IDEGFREE,IEX)=ILOCAL_RECON5(1)%GRADIENTS(1,IELEM(N,I)%IDEGFREE,iex)*WENO(IEX,1)
+				END IF
+			 
+			 
+			 
 			 end do
 			 
 ! 			  if (itestcase.eq.4)then
@@ -6976,6 +7028,7 @@ IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)	
 	DO I=1,KMAXE	!ALL ELEMENTS
+        if (ielem(n,i)%troubled.eq.1)then
 		REDUCE1=0
 		  DO L=1,IELEM(N,I)%IFCA	!faces2
 			      if (ielem(n,i)%types_faces(L).eq.5)then
@@ -7058,7 +7111,7 @@ IF (ITESTCASE.GE.3)THEN
 		
 		
 		
-		
+		end if
 	end do
 !$OMP END DO		
 		
@@ -7120,12 +7173,14 @@ INTEGER::REDUCE1
 real::jump_cond
 KMAXE=XMPIELRANK(N)
 jump_cond=0.8
-
+if (dg.ne.1)then
 IF (ITESTCASE.GE.3)THEN
 
 !$OMP DO SCHEDULE (STATIC)	
 	DO I=1,KMAXE	!ALL ELEMENTS
 		REDUCE1=0
+		
+		 
 		 DO L=1,IELEM(N,I)%IFCA	!faces2
 			      
 				    iqp=qp_LINE_n
@@ -7159,19 +7214,19 @@ IF (ITESTCASE.GE.3)THEN
 		if (ielem(n,i)%hybrid.eq.1)then
 		reduce1=1
 		end if
-		IF (INITCOND.EQ.30)THEN
-		 IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
-                    DO L=1,IELEM(N,I)%IFCA
-                                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-                                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.NE.5)then	!PERIODIC IN MY CPU
-                                            REDUCE1=1
+                    IF (INITCOND.EQ.30)THEN
+                    IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+                        DO L=1,IELEM(N,I)%IFCA
+                                        IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.NE.5)then	!PERIODIC IN MY CPU
+                                                REDUCE1=1
+                                            END IF
+                                            end if
                                         END IF
-                                        end if
-                                    END IF
-                    END DO
-                 END IF
-                 END IF
+                        END DO
+                    END IF
+                    END IF
 		IF (REDUCE1.EQ.1)THEN
         
 		do iex=1,NOF_VARIABLES
@@ -7215,13 +7270,15 @@ IF (ITESTCASE.GE.3)THEN
 		
 		
 		end if
-		end if
 		
+		
+		
+		end if
 	end do
 !$OMP END DO		
 		
 END IF		
-		
+end if
 		
 
 END SUBROUTINE CHECKSOL2D 
@@ -8405,7 +8462,7 @@ ICONSIDERED=I
 
     
     
-    IELEM(N,I)%TROUBLED=0;
+     IELEM(N,I)%TROUBLED=0;
     
     CALL FIND_BOUNDS
 
@@ -8435,6 +8492,10 @@ ICONSIDERED=I
     
     
     
+   
+    
+    
+    
 END DO
 !$OMP END DO    
     
@@ -8450,6 +8511,7 @@ SUBROUTINE TROUBLE_INDICATOR2
 IMPLICIT NONE
 INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
 INTEGER::TROUBLE
+REAL,DIMENSION(idegfree)::BASIS_TEMP
 
 KMAXE=XMPIELRANK(N)
 
@@ -8486,9 +8548,23 @@ ICONSIDERED=I
                 END DO
         
     END DO
-    end if
     
- 
+      DO IEX=1,NOF_VARIABLES
+     
+!     
+      U_C(ICONSIDERED)%VALDG(1,IEX,2:IDEGFREE+1)=ILOCAL_RECON6(Iconsidered)%DG2FV(1:IDEGFREE,IEX)
+
+      END DO
+    
+    
+    
+    
+    
+    
+
+
+    
+ end if
     
 END DO
 !$OMP END DO    
@@ -8526,17 +8602,18 @@ INTEGER::TROUBLE
 						!
                                                         IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
                                                         IELEM(N,I)%TROUBLED=1
+                                                        
                                                         END IF
                                                         IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN						
-                                                        IELEM(N,I)%TROUBLED=1
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
                                                         END IF
                                                 ELSE
                                                     CALL CONS2PRIM2D(N)
                                                         IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-                                                        IELEM(N,I)%TROUBLED=1
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
                                                         END IF
                                                         IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN						
-                                                        IELEM(N,I)%TROUBLED=1
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
                                                         END IF
                                                 
                                                 
@@ -8553,53 +8630,57 @@ INTEGER::TROUBLE
 REAL::PAR1,PAR2,d2,minb,maxb
 REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
 
-PAR1=1E-4
-PAR2=2e-1
+! PAR1=1E-4
+! PAR2=4e-1
     
   
-    
+       SELECT CASE(INDICATOR_TYPE)
     
             
-                    
+             CASE(1)       !MOOD INDICATOR
     
             DO IEX=1,NOF_VARIABLES
-			NAD_DG_EL(IEX)=MAX(PAR1,(par2)*(UTMAX(IEX)-UTMIN(IEX)))
+			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
 			END DO
     
     
+            DO IEX=1,NOF_VARIABLES
+                IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
+                    IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                END IF
+            END DO
+            
+            
+            CASE(2)         !SHU INDICATOR
+
                         DO IEX=1,NOF_VARIABLES
                         
                         
-                         IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
-                            IELEM(N,ICONSIDERED)%TROUBLED=1
+                         IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
+                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
                         END IF
 
                         END DO
                         
                         
-!                         DO IEX=1,NOF_VARIABLES
-! 
-!                         D2=USOL(IEX,facex,pointx)
-!                         if ((d2.lt.(utmin(iex)-par2)).or.(d2.gt.(utmax(iex)+par2)))then
-!                                 IELEM(N,ICONSIDERED)%TROUBLED=1
-!                         end if
-!                         END DO
                         
+                                   
+            END SELECT              
                         
-                        
-
 
 END SUBROUTINE NAD_DG
 
 
 SUBROUTINE FIND_BOUNDS
 IMPLICIT NONE
-INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK
 
 
 
 
 
+SUMVARS=ZERO
+MAXVARS=ZERO
 
 I=ICONSIDERED
 
@@ -8646,6 +8727,9 @@ I=ICONSIDERED
 			              
 			  END DO
          END IF 
+         
+         
+                
           
           
                 UTMIN=ZERO;UTMAX=ZERO
@@ -8653,6 +8737,13 @@ I=ICONSIDERED
 			  
 			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
 			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			    
+			    DO IK=2,K
+                    SUMVARS(IEX)=SUMVARS(IEX)+ABS(UTEMP(IK,IEX)-UTEMP(1,IEX))
+                END DO
+                DO IK=1,K
+                MAXVARS(IEX)=MAX(MAXVARS(IEX),ABS(UTEMP(IK,IEX)))
+                END DO
 			  END DO
 
 
