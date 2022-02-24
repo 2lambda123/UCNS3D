@@ -842,21 +842,22 @@ SUBROUTINE READ_UCNS3D
 	    end if
 
 	    if (guassianquadra.eq.0)then
-	    
             if (dg.eq.1)then
-                
-                IGQRULES=min(iorder+1,6)
+                if (CODE_PROFILE == 101) then
+                    IGQRULES=min(iorder+2,6)
                 else
-                IGQRULES=min(iorder,6)
+                    IGQRULES=min(iorder+1,6)
                 end if
-            else
-
-            if (guassianquadra.gt.1)then
-            IGQRULES = min(iorder+1,6)
-            else
-            IGQRULES =guassianquadra
+            else !FV
+                IGQRULES=min(iorder,6)
             end if
-	End if
+        else 
+            if (guassianquadra.gt.1)then
+                IGQRULES = min(iorder+1,6)
+            else
+                IGQRULES =guassianquadra
+            end if
+        end if
 	    
 	    
 	  !-------------------------END DISCRETISATION 6---------------------------------!
