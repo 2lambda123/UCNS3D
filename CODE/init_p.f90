@@ -1215,7 +1215,7 @@ IF (RESTART.EQ.0)THEN
                 if (dg.eq.1)then
                         VOLTEMP=TRIANGLEVOLUME(N)
                         else
-                        VOLTEMP=TRIANGLEVOLUME(N)/IELEM(N,I)%totvolume
+                        VOLTEMP=1.0d0
                         end if
                 QQP=QP_Triangle
                             
@@ -1276,7 +1276,7 @@ IF (RESTART.EQ.0)THEN
                         
                         IF (ITESTCASE.LE.2)THEN
                             U_C(I)%VAL(1,1)=U_C(I)%VAL(1,1)+LINEAR_INIT2D(N)*WEQUA3D(INC)*(VOLTEMP)
-                            !U_E(I)%VAL(1,1)=U_C(I)%VAL(1,1)
+                            U_E(I)%VAL(1,1)=U_C(I)%VAL(1,1)
                         ELSE
                             CALL INITIALISE_EULER2D(N)
                             IF ((turbulence .eq. 1).or.(passivescalar.gt.0)) THEN

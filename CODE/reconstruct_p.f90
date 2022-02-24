@@ -8489,7 +8489,12 @@ ICONSIDERED=I
                 END DO
         
     END DO
-
+    
+    
+    
+   
+    
+    
     
 END DO
 !$OMP END DO    
@@ -8517,6 +8522,9 @@ DO I = 1, KMAXE
 ICONSIDERED=I
 
     
+    
+    
+
 
     if (IELEM(N,I)%TROUBLED.eq.1)then
     
@@ -8543,9 +8551,17 @@ ICONSIDERED=I
     
       DO IEX=1,NOF_VARIABLES
      
+!     
       U_C(ICONSIDERED)%VALDG(1,IEX,2:IDEGFREE+1)=ILOCAL_RECON6(Iconsidered)%DG2FV(1:IDEGFREE,IEX)
 
       END DO
+    
+    
+    
+    
+    
+    
+
 
     
  end if
@@ -8560,6 +8576,16 @@ end if
 END SUBROUTINE
 
 
+
+
+
+
+
+
+
+
+
+
     
     
 SUBROUTINE PAD_DG    
@@ -8568,241 +8594,200 @@ INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
 INTEGER::TROUBLE
     
     I=ICONSIDERED
-    IF (ITESTCASE.GE.3)THEN
-    IF (DIMENSIONA.EQ.3)THEN
-    
-        CALL CONS2PRIM(N)
-
-            IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-            IELEM(N,I)%TROUBLED=1
-            
-            END IF
-            IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN						
-            IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
-            END IF
-    ELSE
-        CALL CONS2PRIM2D(N)
-            IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
-            IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
-            END IF
-            IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN						
-            IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
-            END IF
-    END IF
-    END IF
+                                                IF (ITESTCASE.GE.3)THEN
+                                                IF (DIMENSIONA.EQ.3)THEN
+                                                
+                                                    CALL CONS2PRIM(N)
+						
+						!
+                                                        IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1
+                                                        
+                                                        END IF
+                                                        IF ((LEFTV(5).LE.ZERO).OR.(LEFTV(5).NE.LEFTV(5)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+                                                        END IF
+                                                ELSE
+                                                    CALL CONS2PRIM2D(N)
+                                                        IF ((LEFTV(1).LE.ZERO).OR.(LEFTV(1).NE.LEFTV(1)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+                                                        END IF
+                                                        IF ((LEFTV(4).LE.ZERO).OR.(LEFTV(4).NE.LEFTV(4)))THEN						
+                                                        IELEM(N,I)%TROUBLED=1;IELEM(N,I)%CONDITION=1
+                                                        END IF
+                                                
+                                                
+                                                END IF
+                                                END IF
     
 END SUBROUTINE
 
 
-! SUBROUTINE NAD_DG    
-! IMPLICIT NONE
-! INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
-! INTEGER::TROUBLE
-! REAL::PAR1,PAR2,d2,minb,maxb
-! REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
-! 
-! ! PAR1=1E-4
-! ! PAR2=4e-1
-!     
-!   
-!        SELECT CASE(INDICATOR_TYPE)
-!     
-!             
-!              CASE(1)       !MOOD INDICATOR
-!     
-!             DO IEX=1,NOF_VARIABLES
-! 			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
-! 			END DO
-!     
-!     
-!             DO IEX=1,NOF_VARIABLES
-!                 IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
-!                     IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
-!                 END IF
-!             END DO
-!             
-!             
-!             CASE(2)         !SHU INDICATOR
-! 
-!                         DO IEX=1,NOF_VARIABLES
-!                         
-!                         
-!                          IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
-!                             IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
-!                         END IF
-! 
-!                         END DO
-!                                    
-!             END SELECT              
-!                         
-! 
-! END SUBROUTINE NAD_DG
-
 SUBROUTINE NAD_DG    
 IMPLICIT NONE
-INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex, activate
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
 INTEGER::TROUBLE
-REAL::PAR1,PAR2,d2,minb,maxb, num, denum, var_out, var_out_neigh,UVEL,VVEL
+REAL::PAR1,PAR2,d2,minb,maxb
 REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
+
+! PAR1=1E-4
+! PAR2=4e-1
     
   
-    SELECT CASE(INDICATOR_TYPE)
+       SELECT CASE(INDICATOR_TYPE)
     
             
-        CASE(1) !MOOD INDICATOR
-            ! Relaxed Discrete Maximum Principle
-            DO IEX = 1, NOF_VARIABLES
-              NAD_DG_EL(IEX) = MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
-            END DO
-
+             CASE(1)       !MOOD INDICATOR
+    
+            DO IEX=1,NOF_VARIABLES
+			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
+			END DO
+    
+    
             DO IEX=1,NOF_VARIABLES
                 IF ((USOL(iex,facex,pointx).LT.(UTMIN(IEX)-NAD_DG_EL(IEX))).OR.(USOL(iex,facex,pointx).GT.(UTMAX(IEX)+NAD_DG_EL(IEX))))THEN
                     IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
                 END IF
             END DO
             
-        CASE(2) !SHU INDICATOR
-
-                    DO IEX=1,NOF_VARIABLES
-                    
-                    
-                        IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
-                        IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
-                    END IF
-
-                    END DO
-                    
-                    
-                    
-        CASE(3) !KXRCF   
             
-            
-            NX=IELEM(N,Iconsidered)%FACEANGLEX(facex)
-            NY=IELEM(N,Iconsidered)%FACEANGLEY(facex)
+            CASE(2)         !SHU INDICATOR
 
+                        DO IEX=1,NOF_VARIABLES
                         
-            
-            NUM = 0.0d0
-            DENUM = 0.0d0
-            ACTIVATE = 0
-            
-            IF(itestcase.ge.3)THEN
-            
-            CALL CONS2PRIM2D(N)
-            VAR_OUT = LEFTV(1)
-            UVEL = U_C(Iconsidered)%VAL(1,2)/U_C(Iconsidered)%VAL(1,1)
-            VVEL = U_C(Iconsidered)%VAL(1,3)/U_C(Iconsidered)%VAL(1,1)
-            
-            LEFTV(1) = UTEMP(FACEX,1)
-            CALL CONS2PRIM2D(N)
-            VAR_OUT_NEIGH = LEFTV(1)
+                        
+                         IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
+                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        END IF
 
+                        END DO
+                        
+             CASE(3)         !SHU INDICATOR
 
-            IF((NX*UVEL+NY*VVEL).LT.0.0d0)THEN
-                ACTIVATE = 1
-            END IF
-            
+                        DO IEX=1,NOF_VARIABLES
+                        
+                        
+                         IF ((USOL(iex,facex,pointx).gt.UTMax(IEX)).or.(USOL(iex,facex,pointx).lt.UTmin(IEX)))THEN
+                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                        END IF
 
-        ELSE
-        
-            VAR_OUT = USOL(1,facex,pointx)
-            VAR_OUT_NEIGH = UTEMP(facex,1)
-        
-            IF((LAMX*NX+LAMY*NY).LT.0.0d0)THEN
-                ACTIVATE = 1
-            END IF
-                    
-        
-        END IF
-        
-            
-            NUM = ABS(VAR_OUT - VAR_OUT_NEIGH)
-            DENUM = MAXVARS(1)! * (sqrt(ielem(n,iconsidered)%totvolume))**((IDEGFREE)/2)*IELEM(N,IConsidered)%SURF(facex)
-            
-            IF(NUM/DENUM.GT.1)THEN
-                IF(ACTIVATE.EQ.1)THEN
-                    IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
-                END IF
-            END IF
-        
-        CASE(4)
-            ! Maximum Principle Detector
-            DO IEX = 1, NOF_VARIABLES
-                IF ( USOL(IEX,FACEX,POINTX) .LT. UTMIN(IEX) .OR. USOL(IEX,FACEX,POINTX) .GT. UTMAX(IEX) ) THEN
-                    IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
-                END IF
-            END DO
-    END SELECT
+                        END DO            
+                        
+                                   
+            END SELECT              
+                        
+
 END SUBROUTINE NAD_DG
 
 
 SUBROUTINE FIND_BOUNDS
 IMPLICIT NONE
-INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq
+
+
+
+
 
 SUMVARS=ZERO
 MAXVARS=ZERO
 
 I=ICONSIDERED
 
-        UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES) ! Cell average of DG sol on cell I
-        
-        ! Cell average of neighboring cell on neighboring cell
-        K=1
-        IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
-            DO L = 1, IELEM(N,I)%IFCA
-                K=K+1
-                UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)
-            END DO
-        END IF
-            
-        IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
-            DO L=1,IELEM(N,I)%IFCA
-                IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-                            K=K+1
-                            UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
-                            ELSE
-                            !NOT PERIODIC ONES IN MY CPU			  				  
-                            END IF
-                        ELSE
-                            K=K+1
-                            UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
-                        END IF
-                ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-                
-                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                        K=K+1
-                        UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
-                        (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
-                        END IF
-                    ELSE
-
-                    K=K+1
-                    UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
-                    (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
-                    END IF
-                    
-                END IF
-            END DO
-        END IF 
+!             UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+!             
+!             K=1
+!             IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+!                 DO L = 1, IELEM(N,I)%IFCA
+!                     K=K+1
+!                     UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)
+!                 END DO
+!             END IF
+! 			    
+!             IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+! 			    DO L=1,IELEM(N,I)%IFCA
+!                     IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+!                             IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+!                                 if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+!                                 K=K+1
+!                                 UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+!                                 ELSE
+!                                 !NOT PERIODIC ONES IN MY CPU			  				  
+!                                 END IF
+!                             ELSE
+!                                 K=K+1
+!                                 UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+!                             END IF
+!                     ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+! 			      
+!                         IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+!                             if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+!                             K=K+1
+!                             UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+!                             (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+!                             END IF
+!                         ELSE
+! 
+!                         K=K+1
+!                         UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+!                         (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+!                         END IF
+! 				      
+!                     END IF
+! 			              
+! 			  END DO
+!          END IF 
          
+         
+           
+           !extended bounds
+             k=0
+                if (ILOCAL_RECON3(I)%LOCAL.eq.1)then
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            k=k+1
+                            
+                            UTEMP(k,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:NOF_VARIABLES)
+                        END DO
+                ELSE
+                        DO IQ=1,IELEM(N,I)%iNUMNEIGHBOURS
+                            k=k+1
+                           
+                            IF (ILOCAL_RECON3(I)%IHEXB(1,IQ).EQ.N)THEN
+                            UTEMP(k,1:NOF_VARIABLES)=U_C(ILOCAL_RECON3(I)%IHEXL(1,IQ))%VAL(1,1:nof_variables)
+                            else
+                            UTEMP(k,1:NOF_VARIABLES)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IQ))%SOL(ILOCAL_RECON3(I)%IHEXL(1,IQ),1:nof_variables)
+                            end if
+                        end do
+                END IF
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
           
-        UTMIN=ZERO;UTMAX=ZERO
-        DO IEX=1,NOF_VARIABLES
-            
-            UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
-            UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
-            
-            DO IK=2,K
-                SUMVARS(IEX)=SUMVARS(IEX)+ABS(UTEMP(IK,IEX)-UTEMP(1,IEX))
-            END DO
-            DO IK=1,K
+          
+                UTMIN=ZERO;UTMAX=ZERO
+			  DO IEX=1,NOF_VARIABLES
+			  
+			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
+			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
+			    
+			    DO IK=2,K
+                    SUMVARS(IEX)=SUMVARS(IEX)+ABS(UTEMP(IK,IEX)-UTEMP(1,IEX))
+                END DO
+                DO IK=1,K
                 MAXVARS(IEX)=MAX(MAXVARS(IEX),ABS(UTEMP(IK,IEX)))
-            END DO
-        END DO
+                END DO
+			  END DO
 
 
 END SUBROUTINE FIND_BOUNDS

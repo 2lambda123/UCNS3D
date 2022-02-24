@@ -600,7 +600,7 @@ INTEGER,INTENT(IN)::N
  REAL::distance2
 real::rnode
 
-  distance2=sqrt(((vext(1,1)-vext(2,1))**2)+((vext(1,2)-vext(2,2))**2)+1e-16)
+  distance2=sqrt(((vext(1,1)-vext(2,1))**2)+((vext(1,2)-vext(2,2))**2))
   
 
 end function distance2
