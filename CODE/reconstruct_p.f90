@@ -8629,19 +8629,13 @@ INTEGER::I,L,J,K,KMAXE,IQP,NGP,iex
 INTEGER::TROUBLE
 REAL::PAR1,PAR2,d2,minb,maxb
 REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
-
-! PAR1=1E-4
-! PAR2=4e-1
-    
   
-       SELECT CASE(INDICATOR_TYPE)
-    
-            
-             CASE(1)       !MOOD INDICATOR
-    
+    SELECT CASE(INDICATOR_TYPE)
+        CASE(1) ! MOOD INDICATOR, relaxed Discrete Maximum Principle
+
             DO IEX=1,NOF_VARIABLES
-			NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
-			END DO
+            NAD_DG_EL(IEX)=MAX(INDICATOR_PAR1,(INDICATOR_PAR2)*(UTMAX(IEX)-UTMIN(IEX)))
+            END DO
     
     
             DO IEX=1,NOF_VARIABLES
@@ -8649,34 +8643,27 @@ REAL,DIMENSION(1:NoF_vARIABLES)::NAD_DG_EL
                     IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
                 END IF
             END DO
+        
+        
+        CASE(2) ! SHU INDICATOR
+
+            DO IEX=1,NOF_VARIABLES
             
             
-            CASE(2)         !SHU INDICATOR
+                IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
+                IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+            END IF
 
-                        DO IEX=1,NOF_VARIABLES
-                        
-                        
-                         IF ((SUMVARS(IEX)/MAXVARS(IEX)).GT.INDICATOR_PAR1)THEN
-                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
-                        END IF
+            END DO
+                    
+        CASE(3) ! Maximum Principle Detector
 
-                        END DO
-                        
-             CASE(3)         !SHU INDICATOR
-
-                        DO IEX=1,NOF_VARIABLES
-                        
-                        
-                         IF ((USOL(iex,facex,pointx).gt.UTMax(IEX)).or.(USOL(iex,facex,pointx).lt.UTmin(IEX)))THEN
-                            IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
-                        END IF
-
-                        END DO            
-                        
-                                   
-            END SELECT              
-                        
-
+            DO IEX=1,NOF_VARIABLES
+                IF ((USOL(iex,facex,pointx).gt.UTMax(IEX)).or.(USOL(iex,facex,pointx).lt.UTmin(IEX)))THEN
+                    IELEM(N,ICONSIDERED)%TROUBLED=1;IELEM(N,ICONSIDERED)%CONDITION=1
+                END IF
+            END DO
+        END SELECT
 END SUBROUTINE NAD_DG
 
 
@@ -8758,26 +8745,11 @@ I=ICONSIDERED
                             end if
                         end do
                 END IF
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
-           
           
           
-                UTMIN=ZERO;UTMAX=ZERO
-			  DO IEX=1,NOF_VARIABLES
-			  
+            UTMIN=ZERO;UTMAX=ZERO
+            DO IEX=1,NOF_VARIABLES
+            
 			    UTMIN(IEX)=MINVAL(UTEMP(1:K,IEX))
 			    UTMAX(IEX)=MAXVAL(UTEMP(1:K,IEX))
 			    
@@ -8787,7 +8759,7 @@ I=ICONSIDERED
                 DO IK=1,K
                 MAXVARS(IEX)=MAX(MAXVARS(IEX),ABS(UTEMP(IK,IEX)))
                 END DO
-			  END DO
+            END DO
 
 
 END SUBROUTINE FIND_BOUNDS
