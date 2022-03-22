@@ -61,7 +61,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
         DG_RHS_VOL_INTEG = ZERO
         end if
 	
-        IF (DG.EQ.1) THEN
+        IF (dg.EQ.1) THEN
             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
             
         END IF
@@ -87,9 +87,11 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 				  
 				  if (dg.eq.1)WEIGHTS_dg(1:iqp)=WEIGHTS_TEMP(1:IQP)
 				  
+				  
+				  
 				  do NGP=1,iqp
 				  pointx=ngp
-				  IF (DG.EQ.1) THEN
+				  IF (dg.EQ.1) THEN
                         CLEFT = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
                         CRIGHT = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
                     ELSE !FV
@@ -105,7 +107,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 				      
 				      DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
 				      
-				      
+				       
 				      
 				      else
 				      GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
@@ -137,7 +139,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 				  GODFLUX2=ZERO
 				  do NGP=1,iqp
 				  POINTX = NGP
-                    IF (DG == 1) THEN
+                    IF (dg == 1) THEN
                         CLEFT(1:nof_variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
                         else
 				      CLEFT(1:nof_variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_variables,L,NGP)
@@ -146,7 +148,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
                                  
 								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								 IF (DG == 1) THEN
+								 IF (dg == 1) THEN
                                     CRIGHT = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
                                 ELSE  
                                 CRIGHT(1:nof_variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_variables,IELEM(N,I)%INEIGHN(L),NGP)
@@ -157,7 +159,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 								    
 								  END IF
 							ELSE
-							     IF (DG == 1) THEN
+							     IF (dg == 1) THEN
                                 CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
 !                                 WRITE(500+N,*)'my cpu not boundary'
                             ELSE  
@@ -168,14 +170,14 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 						
 							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
 								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-									 IF (DG == 1) THEN
+									 IF (dg == 1) THEN
                                     CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
                                 else 
                                 CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
 								end if
 								END IF
 							ELSE 								
-								 IF (DG == 1) THEN
+								 IF (dg == 1) THEN
                                 CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
                                 else
                                 CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
@@ -191,7 +193,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 				      DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
 				      
 				       
-				      
+				     
 				      else
 				      
 				      GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))	
@@ -203,9 +205,11 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 		    END DO
 		END IF
 ! 				
-        IF (DG.eq.1)then
+        IF (dg.eq.1)then
         DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
         RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
+        
+        
 
         end if
 
@@ -256,7 +260,9 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
         ICONSIDERED=I
         
         IF (DG.EQ.1) THEN
+        
             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+         
         END IF
         
 		IF (IELEM(N,I)%INTERIOR.EQ.0)THEN ! Element is interior
@@ -292,7 +298,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                         DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
                        
                          
-!                         IF (I == 1) !WRITE(600+N,*) 'INTERIOR:', I, L, NGP, IELEM(N,I)%INEIGH(L), 'HLLCFLUX:', HLLCFLUX, 'NOMRALVECT:', NORMALVECT, 'CLEFT:', CLEFT, 'CRIGHT:', CRIGHT, 'DG_SURF_INT:', DG_SURF_FLUX(N)
+
                     ELSE !FV
                         GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP_LINE(NGP)*IELEM(N,I)%SURF(L)))
                     END IF
@@ -329,11 +335,11 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                             ELSE !NOT PERIODIC ONES IN MY CPU
                                 CRIGHT(1:nof_variables)=CLEFT(1:nof_variables)
                             END IF
-!                             WRITE(500+N,*) 'MY CPU BOUNDARY'
+!                            
                         ELSE
                             IF (DG == 1) THEN
                                 CRIGHT = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
-!                                 WRITE(500+N,*)'my cpu not boundary'
+!                                 
                             ELSE !FV
                                 CRIGHT(1) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1,IELEM(N,I)%INEIGHN(L),NGP)
                             END IF
@@ -355,7 +361,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
                                 CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
                             end if
                         END IF
-                        !WRITE(500+N,*)'other cpu:'!, IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                        
                     END IF
                     
                     CALL EXACT_RIEMANN_SOLVER(N,CLEFT,CRIGHT,NORMALVECT,HLLCFLUX)
@@ -382,9 +388,7 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 		
         IF (DG == 1) RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
         
-! 		WRITE(500+N,*) "ELEM",I,"DG_SURF_INTEG:", DG_RHS_SURF_INTEG
-! 		WRITE(500+N,*) "DG_VOL_INTEG:", DG_RHS_VOL_INTEG
-! 		WRITE(500+N,*) "DG_RHS:", DG_RHS
+
 		
 	END DO
 	!$OMP END DO 
@@ -1076,8 +1080,11 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
             DG_RHS = ZERO
             DG_RHS_SURF_INTEG = ZERO
             DG_RHS_VOL_INTEG = ZERO
+            
+            
             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
-                
+            
+            
             END IF
 	
 
@@ -1267,8 +1274,9 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE2d(N)
             DG_RHS = ZERO
             DG_RHS_SURF_INTEG = ZERO
             DG_RHS_VOL_INTEG = ZERO
+            
             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
-                
+               
             END IF
 				
 

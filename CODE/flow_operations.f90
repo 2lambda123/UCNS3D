@@ -1057,6 +1057,18 @@ P=PRES
 U=uvel
 V=vvel
 
+if (initcond.eq.133)then
+p=195557.25
+	R=p/(350.5d0*287.058d0)
+	u=168.62
+	v=0.0d0
+
+end if
+
+
+
+
+
 
 !KINETIC ENERGY FIRST!
 SKIN=(OO2)*((U**2)+(V**2))

@@ -1143,7 +1143,7 @@ Valuelocation(:)=0
 		END IF
     
 		DO I=1,KMAXE
-		  VALUESS(i)=IELEM(N,I)%iNUMNEIGHBOURS!%STENCIL_DIST
+		  VALUESS(i)=ielem(n,i)%TROUBLED
 		END DO
 		
 		call MPI_GATHERv(valuess,xmpiall(n),MPI_DOUBLE_PRECISION,xbin2,xmpiall,offset,mpi_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IERROR)
@@ -1268,7 +1268,7 @@ Valuelocation(:)=0
                 END DO
                 ELSE
                 DO I=1,KMAXE
-                VALUESS(i)=ielem(n,i)%condition!IELEM(N,I)%STENCIL_DIST
+                VALUESS(i)=ielem(n,i)%TROUBLED!IELEM(N,I)%STENCIL_DIST
                 END DO
                 END IF
                 
@@ -4005,7 +4005,7 @@ SUBROUTINE READ_INPUT(N,XMPIELRANK,XMPINRANK,XMPIE,XMPIN,IELEM,INODE,IMAXN,IMAXE
 	
 	
  	if (dimensiona.eq.3)then
-	!WRITE(400+N,*)KMAXE,IMAXE,IMAXN
+	
 ! 	ALLOCATE(XSIZE(0:ISIZE-1))
 ! 	XSIZE=-1
 	ALLOCATE(iNODEr(imaxn))
@@ -12895,14 +12895,53 @@ ICPUID=N
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 !  ioCPt1=MPI_WTIME()
 
-ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	!I ALLOCATE IN MEMORY THE PATTERN OF ACCESS OF DATA IN TERMS OF DISPLACEMENT, AND IN TERMS OF BLOCKLENGTH, AND FINALY AN ARRAY WITH THIS PROCESSOR DATA
+
+IF (DG.EQ.1)THEN
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)))
+ELSE
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	
+END IF
+
+     if (dg.eq.1)then
+     DO I=1,KMAXE
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1))
+      END DO
+      
+
+      n_end=(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)
+     
+     else
 
       DO I=1,KMAXE
-	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+turbulenceequations+passivescalar)
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar))
       END DO
+      
 
       n_end=NOF_VARIABLES+turbulenceequations+passivescalar
+      end if
 
+      
+      if (dg.eq.1)then
+      IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+	    K=1
+	  DO I=1,KMAXE
+	      ARRAY2(K:K+NOF_VARIABLES-1)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+	      K=K+NOF_VARIABLES
+	      ARRAY2(K:K+turbulenceequations+passivescalar-1)=U_CT(I)%VAL(1,1:turbulenceequations+passivescalar)
+	      K=K+turbulenceequations+passivescalar
+	  END DO
+      ELSE
+	  K=1
+	  DO I=1,KMAXE
+        DO J=1,NOF_VARIABLES
+	      ARRAY2(K:K+IDEGFREE)=U_C(I)%VALDG(1,J,1:IDEGFREE+1)
+	      K=K+(IDEGFREE+1)
+        END DO
+	  END DO
+      END IF
+      
+      else
+      
       IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 	    K=1
 	  DO I=1,KMAXE
@@ -12918,7 +12957,7 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	      K=K+NOF_VARIABLES
 	  END DO
       END IF
-      
+      end if
       
 	RESTFILE='RESTART.dat'
 
@@ -13265,7 +13304,22 @@ size_of_real=8
 ICPUID=N
 CALL MPI_BARRIER(MPI_COMM_WORLD,IERROR)
 
+IF (DG.EQ.1)THEN
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)))
+ELSE
 ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivescalar)))	!I ALLOCATE IN MEMORY THE PATTERN OF ACCESS OF DATA IN TERMS OF DISPLACEMENT, AND IN TERMS OF BLOCKLENGTH, AND FINALY AN ARRAY WITH THIS PROCESSOR DATA
+END IF
+
+       if (dg.eq.1)then
+     DO I=1,KMAXE
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1))
+      END DO
+      
+
+      n_end=(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)
+     
+     else
+
 
       DO I=1,KMAXE
 	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+turbulenceequations+passivescalar)
@@ -13273,6 +13327,34 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 
       n_end=NOF_VARIABLES+turbulenceequations+passivescalar
 
+      end if
+      
+      
+      
+      if (dg.eq.1)then
+      IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+	    K=1
+	  DO I=1,KMAXE
+	      ARRAY2(K:K+NOF_VARIABLES-1)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+	      K=K+NOF_VARIABLES
+	      ARRAY2(K:K+turbulenceequations+passivescalar-1)=U_CT(I)%VAL(1,1:turbulenceequations+passivescalar)
+	      K=K+turbulenceequations+passivescalar
+	  END DO
+      ELSE
+	  K=1
+	  DO I=1,KMAXE
+        DO J=1,NOF_VARIABLES
+	      ARRAY2(K:K+IDEGFREE)=U_C(I)%VALDG(1,J,1:IDEGFREE+1)
+	     
+	      
+	      K=K+(IDEGFREE+1)
+        END DO
+	  END DO
+      END IF
+      
+      
+      else
+      
       IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
 	    K=1
 	  DO I=1,KMAXE
@@ -13288,6 +13370,8 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+turbulenceequations+passivesca
 	      K=K+NOF_VARIABLES
 	  END DO
       END IF
+      
+      end if
       RESTFILE='RESTART.dat'
        IF (N.EQ.0)THEN
 	  !INQUIRE (FILE=RESTFILE,EXIST=HERE1)
@@ -13496,7 +13580,7 @@ INTEGER,ALLOCATABLE,DIMENSION(:)::ICELL,ICELLA,dispt
 REAL,ALLOCATABLE,DIMENSION(:)::VALUESA,VALUESS,array2
 REAL,allocatable,DIMENSION(:)::RG,ARG
 CHARACTER(LEN=20)::PROC,RESTFILE,PROC3
-INTEGER:: prev_turbequation,INITIAL,III,i,k,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,ind1,fh,size_of_real,size_of_int,dip,N_END,datatype
+INTEGER:: prev_turbequation,INITIAL,III,i,k,j,jx,QQP,INC,kmaxe,jkn,ki,iterr,JX2,ind1,fh,size_of_real,size_of_int,dip,N_END,datatype
 REAL,ALLOCATABLE,DIMENSION(:)::IGINT,TGINT,ARRAY
 integer(kind=MPI_OFFSET_KIND) :: disp_in_file, tmp
 logical::here
@@ -13522,14 +13606,29 @@ end if
 size_of_real=8
 
 !$OMP MASTER
+IF (DG.EQ.1)THEN
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescalar)*(IDEGFREE+1)))
+ELSE
+ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescalar)))	
+END IF
 
-ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescalar)))
+    if (dg.eq.1)then
+     DO I=1,KMAXE
+	DISPT(I)=(XGO(I)-1)*((NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1))
+      END DO
+    n_end=(NOF_VARIABLES+turbulenceequations+passivescalar)*(IDEGFREE+1)
+     
+     else
+
+
     DO I=1,KMAXE
 	DISPT(I)=(XGO(I)-1)*(NOF_VARIABLES+prev_turbequation+passivescalar)
       END DO
       
       
       n_end=NOF_VARIABLES+prev_turbequation+LAMPS
+      
+      end if
       
       CALL MPI_TYPE_CREATE_INDEXED_BLOCK(KMAXE,n_end,DISPT,MPI_DOUBLE_PRECISION,DATATYPE,IERROR)
     CALL MPI_TYPE_COMMIT(DATATYPE,IERROR)
@@ -13573,6 +13672,58 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescala
 	CALL MPI_TYPE_FREE(DATATYPE,IERROR)
 	
 	
+	
+	if (dg.eq.1)then
+	
+	
+	IF ((prev_turbmodel.GT.0).OR.(LAMPS.GT.0))THEN
+	
+	    K=1
+	    DO I=1,KMAXE
+		U_C(I)%VAL(1,1:NOF_VARIABLES)=ARRAY2(K:K+NOF_VARIABLES-1)
+		K=K+NOF_VARIABLES
+		    IF ((TURBULENCE.GT.0).OR.(PASSIVESCALAR.GT.0))THEN
+		    U_CT(I)%VAL(1,1:turbulenceequations+passivescalar)=ARRAY2(K:K+prev_turbequation+LAMPS-1)
+		    END IF
+		K=K+prev_turbmodel+LAMPS
+		
+	    END DO
+	ELSE
+	    K=1
+	    DO I=1,KMAXE
+	    DO J=1,NOF_VARIABLES
+	    
+		U_C(I)%VALdg(1,j,1:IDEGFREE+1)=ARRAY2(K:K+IDEGFREE)
+		
+		
+		K=K+(IDEGFREE+1)
+		END DO
+		
+		
+		      IF (TURBULENCE.EQ.1)THEN
+			    IF (TURBULENCEMODEL.EQ.1)THEN
+				U_CT(I)%VAL(1,1)=VISC*TURBINIT
+			    ELSE
+				U_CT(I)%VAL(1,1)=1.5*(I_turb_inlet*ufreestream)**2
+				U_CT(I)%VAL(1,2)=(C_MU_INLET**(-0.25))*SQRT(U_CT(KI)%VAL(1,1))&
+					/L_TURB_INLET*RG(1)
+			    END IF
+			ENDIF
+		K=K+prev_turbmodel+LAMPS
+		
+	    END DO
+	END IF
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	else
 	IF ((prev_turbmodel.GT.0).OR.(LAMPS.GT.0))THEN
 	
 	    K=1
@@ -13603,6 +13754,14 @@ ALLOCATE(DISPT(KMAXE),ARRAY2(KMAXE*(NOF_VARIABLES+prev_turbequation+passivescala
 		
 	    END DO
 	END IF
+	
+	
+	end if
+	
+	
+	
+	
+	
 	call MPI_Barrier(MPI_COMM_WORLD, ierror)
 	DEALLOCATE(DISPT,ARRAY2)
 	

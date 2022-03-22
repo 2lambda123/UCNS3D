@@ -120,7 +120,7 @@ IF (RESTART.EQ.0)THEN
 !$OMP DO SCHEDULE (STATIC) 
 	DO I=1,KMAXE
 		
-		
+		iconsidered=i
 		 
 		 VEXT=ZERO
     NODES_LIST=ZERO
@@ -194,7 +194,7 @@ IF (RESTART.EQ.0)THEN
 			IF (DG.EQ.1)THEN
 			basis_vector(1)=1.0d0
                 compwrt=-2
-             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
               compwrt=0
                              
                              tempsol(1,:)=LINEAR_INIT3D(N)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
@@ -226,7 +226,7 @@ IF (RESTART.EQ.0)THEN
                     IF (DG.EQ.1)THEN
                     basis_vector(1)=1.0d0
                     compwrt=-2
-                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
                     compwrt=0
                                     DO KX=1,nof_Variables
                                     tempsol(1,:)=VECCOS(KX)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
@@ -275,16 +275,28 @@ IF (RESTART.EQ.0)THEN
 	  POZ(1)=QPOINTS(3,INC) 
 	  
 			IF (ITESTCASE.LE.2)THEN
-			IF (DG.EQ.1)THEN
+			
+                
+			
+			IF (dg.EQ.1)THEN
 			basis_vector(1)=1.0d0
 			compwrt=-2
-             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+			
+			
+			
+			
+             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
                              compwrt=0
                              tempsol(1,:)=LINEAR_INIT3D(N)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
                          
-!                          write(400+n,*)"here 1",inc,LINEAR_INIT3D(N),basis_vector(1:idegfree+1),WEQUA3D(INC),voltemp,ielem(n,i)%Totvolume
+!                
+                
                          
                               U_C(I)%VALDG(1,1,:)=U_C(I)%VALDG(1,1,:)+MATMUL(m_1(i)%val(:,:),tempsol(1,:))
+			
+			
+               
+			
 			
 			
 			
@@ -303,10 +315,10 @@ IF (RESTART.EQ.0)THEN
 			U_CT(I)%VAL(1,1:0+turbulenceequations+passivescalar)=U_CT(I)%VAL(1,1:0+turbulenceequations+passivescalar)+&
 			VECCOS(6:5+turbulenceequations+passivescalar)*WEQUA3D(INC)*(VOLTEMP)
 			else
-                    IF (DG.EQ.1)THEN
+                    IF (dg.EQ.1)THEN
                     basis_vector(1)=1.0d0
                     compwrt=-2
-                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
                     compwrt=0
                                     DO KX=1,nof_Variables
                                     tempsol(1,:)=VECCOS(KX)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
@@ -344,7 +356,7 @@ IF (RESTART.EQ.0)THEN
 			IF (DG.EQ.1)THEN
 			basis_vector(1)=1.0d0
 			compwrt=-2
-             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
             compwrt=0
                              tempsol(1,:)=LINEAR_INIT3D(N)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
                          
@@ -370,7 +382,7 @@ IF (RESTART.EQ.0)THEN
 			IF (DG.EQ.1)THEN
                     basis_vector(1)=1.0d0
                     compwrt=-2
-                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
                     compwrt=0
                                     DO KX=1,nof_Variables
                                     tempsol(1,:)=VECCOS(KX)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
@@ -413,7 +425,7 @@ IF (RESTART.EQ.0)THEN
 			IF (DG.EQ.1)THEN
                     basis_vector(1)=1.0d0
                     compwrt=-2
-                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
                     compwrt=0
                                     DO KX=1,nof_Variables
                                     tempsol(1,:)=VECCOS(KX)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
@@ -449,7 +461,7 @@ IF (RESTART.EQ.0)THEN
 			IF (DG.EQ.1)THEN
 			basis_vector(1)=1.0d0
 			compwrt=-2
-             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+             BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
                           compwrt=0   
                              tempsol(1,:)=LINEAR_INIT3D(N)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
                          
@@ -475,7 +487,7 @@ IF (RESTART.EQ.0)THEN
 			IF (DG.EQ.1)THEN
                     basis_vector(1)=1.0d0
                     compwrt=-2
-                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,QP_ARRAY(I,COUNT_1)%Z,IORDER,I,IDEGFREE) 
+                    BASIS_VECTOR(2:idegfree+1) = BASIS_REC(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),QP_ARRAY(I)%Z(COUNT_1),IORDER,I,IDEGFREE) 
                     compwrt=0
                                     DO KX=1,nof_Variables
                                     tempsol(1,:)=VECCOS(KX)*WEQUA3D(INC)*(voltemp)*basis_vector(1:idegfree+1)
@@ -1147,7 +1159,7 @@ IF (RESTART.EQ.0)THEN
                                
                                 basis_vector(1)=1.0d0
                                 compwrt=-2
-                             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I,COUNT_1)%X,QP_ARRAY(I,COUNT_1)%Y,IORDER,I,IDEGFREE) 
+                             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(COUNT_1),QP_ARRAY(I)%Y(COUNT_1),IORDER,I,IDEGFREE) 
                                 compwrt=0
                              IF (ITESTCASE.GE.3)THEN
                              CALL INITIALISE_EULER2D(N)
@@ -1224,8 +1236,8 @@ IF (RESTART.EQ.0)THEN
                         DO INC=1,QQP
                             POX(1) = QPOINTS(1,INC)  !POX,POY required for LINEAR_INIT2D
                             POY(1) = QPOINTS(2,INC) 
-                            !QP_ARRAY(I,INC)%X = QPOINTS(1,INC) - IELEM(N,I)%XXC !POX,POY required for LINEAR_INIT2D
-                            !QP_ARRAY(I,INC)%Y = QPOINTS(2,INC) - IELEM(N,I)%YYC
+                            !QP_ARRAY(I)%X(INC) = QPOINTS(1,INC) - IELEM(N,I)%XXC !POX,POY required for LINEAR_INIT2D
+                            !QP_ARRAY(I)%Y(INC) = QPOINTS(2,INC) - IELEM(N,I)%YYC
                            ! QP_ARRAY(I,INC)%QP_WEIGHT = WEQUA3D(INC)
                            
                            
@@ -1234,7 +1246,7 @@ IF (RESTART.EQ.0)THEN
                                
                            basis_vector(1)=1.0d0
                             compwrt=-2
-                             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I,INC)%X,QP_ARRAY(I,INC)%Y,IORDER,I,IDEGFREE) 
+                             BASIS_VECTOR(2:idegfree+1) = BASIS_REC2D(N,QP_ARRAY(I)%X(INC),QP_ARRAY(I)%Y(INC),IORDER,I,IDEGFREE) 
                              compwrt=0
                              
                               IF (ITESTCASE.GE.3)THEN

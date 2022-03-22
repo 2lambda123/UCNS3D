@@ -6011,10 +6011,10 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             IOVERST=ISELEM
             IOVERTO=ISELEM
             
-            if (dg.eq.1)then
-                NUMNEIGHBOURS=7
+           if (dg.eq.1)then
+                NUMNEIGHBOURS=ILX*extf
                 IMAXDEGFREE=NUMNEIGHBOURS-1
-                itemd=20
+                itemd=(ILX*extf)*IEXTEND
                 ISELEM=min(itemd,imaxe-1)
                 ISELEMT(N:N)=ISELEM
                 IOVERST=ISELEM
@@ -6040,12 +6040,12 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             CASE (1,2,3)
                 idegfree2=3
                 IORDER2=1
-                NUMNEIGHBOURS2=9
+                NUMNEIGHBOURS2=7
             
             CASE(4,5,6,7)
                 idegfree2=3
                 IORDER2=1
-                NUMNEIGHBOURS2=9
+                NUMNEIGHBOURS2=7
             
             END SELECT
         END IF
@@ -6053,7 +6053,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
         IF (IORDER.EQ.1)THEN
             ILX=((IORDER+1)*(IORDER+2)*(IORDER+3))/6
             IDEGFREE=ILX-1
-            NUMNEIGHBOURS=ILX*extf
+            NUMNEIGHBOURS=7
             IMAXDEGFREE=NUMNEIGHBOURS-1
             ISELEM=(ILX*extf)*IEXTEND
             ISELEMT(N:N)=ISELEM
@@ -6062,17 +6062,17 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             
             idegfree2=3
             IORDER2=1
-            NUMNEIGHBOURS2=9
+            NUMNEIGHBOURS2=7
             
             
             if (dg.eq.1)then
-                NUMNEIGHBOURS=7
-                IMAXDEGFREE=NUMNEIGHBOURS-1
-                itemd=20
-                ISELEM=min(itemd,imaxe-1)
-                ISELEMT(N:N)=ISELEM
-                IOVERST=ISELEM
-                IOVERTO=ISELEM
+                IDEGFREE=ILX-1
+            NUMNEIGHBOURS=7
+            IMAXDEGFREE=NUMNEIGHBOURS-1
+            ISELEM=(ILX*extf)*IEXTEND
+            ISELEMT(N:N)=ISELEM
+            IOVERST=ISELEM
+            IOVERTO=ISELEM
             end if
             
             
@@ -6199,12 +6199,12 @@ IF (IGQRULES.EQ.2)THEN
 	
 END IF
 IF (IGQRULES.EQ.3)THEN
-	QP_HEXA=27;QP_TETRA=10;QP_PYRA=15;QP_PRISM=18;
+	QP_HEXA=27;QP_TETRA=14;QP_PYRA=15;QP_PRISM=18;
 	QP_QUAD=9;QP_TRIANGLE=6
 	
 END IF
 IF (IGQRULES.EQ.4)THEN
-	QP_HEXA=64;QP_TETRA=20;QP_PYRA=15;QP_PRISM=24;
+	QP_HEXA=64;QP_TETRA=24;QP_PYRA=15;QP_PRISM=24;
 	QP_QUAD=16;QP_TRIANGLE=10
 	
 END IF
@@ -6214,12 +6214,12 @@ IF (IGQRULES.EQ.5)THEN
 	
 END IF
 IF (IGQRULES.EQ.6)THEN
-	QP_HEXA=216;QP_TETRA=35;QP_PYRA=15;QP_PRISM=60;
+	QP_HEXA=216;QP_TETRA=56;QP_PYRA=15;QP_PRISM=60;
 	QP_QUAD=36;QP_TRIANGLE=21
 	
 END IF
 IF (IGQRULES.GE.7)THEN
-	QP_HEXA=216;QP_TETRA=35;QP_PYRA=15;QP_PRISM=60;
+	QP_HEXA=216;QP_TETRA=56;QP_PYRA=15;QP_PRISM=60;
 	QP_QUAD=36;QP_TRIANGLE=36
 	
 END IF
@@ -6354,11 +6354,12 @@ SUBROUTINE STENCILS(N,IELEM,IMAXE,XMPIE,XMPIELRANK,ILOCALSTENCIL,TYPESTEN,NUMNEI
 	
 	DO I=1,KMAXE
                  IELEM(N,I)%FULL=0
-                 
+                   
                   IELEM(N,I)%TROUBLED=1
                   
                   if(dg.eq.1)then
                   IELEM(N,I)%TROUBLED=0
+                 
                   end if
 			KX=0
 		DO LM=1,TYPESTEN

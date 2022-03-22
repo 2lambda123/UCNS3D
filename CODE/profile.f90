@@ -867,32 +867,32 @@ end if
 
 
 IF (INITCOND.EQ.30)THEN	!shock density interaction
-if (pox(1).le.1.0d0)then
-if (poy(1).le.1.0d0)then
-r1=77.0d0/558.0d0
-u1=4.0d0/sqrt(11.0d0)
-v1=4.0d0/sqrt(11.0d0)
-p1=9.0d0/310.0d0
+if (pox(1).le.zero)then
+if (poy(1).le.zero)then
+r1=0.138
+u1=1.206
+v1=1.206
+p1=0.029
 end if
-if (poy(1).gt.1.0d0)then
-r1=33.0d0/62.0d0
-u1=4.0d0/sqrt(11.0d0)
-v1=0.0d0
-p1=0.3d0
+if (poy(1).gt.zero)then
+r1=0.5323
+u1=1.206
+v1=0.0
+p1=0.3
 end if
 end if
-if (pox(1).gt.1.0d0)then
-if (poy(1).le.1.0d0)then
-r1=33.0d0/62.0d0
-u1=0.0d0
-v1=4.0d0/sqrt(11.0d0)
-p1=0.3d0
+if (pox(1).gt.zero)then
+if (poy(1).le.zero)then
+r1=0.5323
+u1=0.0
+v1=1.206
+p1=0.3
 end if
-if (poy(1).gt.1.0d0)then
-r1=1.5d0
-u1=0.0d0
-v1=0.0d0
-p1=1.5d0
+if (poy(1).gt.zero)then
+r1=1.5
+u1=0.0
+v1=0.0
+p1=1.5
 end if
 end if
 SKIN1=(OO2)*((U1**2)+(V1**2))
@@ -1879,7 +1879,53 @@ VECCOS(7)=MP_A(1)
 END IF
 
 
+if (initcond.eq.133)then
 
+if (pox(1).lt.0.0d0)then
+
+	
+	p1=195557.25
+	R1=p1/(350.5d0*287.058d0)
+	u1=168.62
+	v1=0.0d0
+	
+	rhc1=r1
+	rhc2=u1
+	rhc3=v1
+	rhc4=p1
+
+
+
+	else
+
+	
+	u1=0.0d0
+	v1=0.0d0
+	p1=101325
+	R1=p1/(288.15d0*287.058d0)
+
+	end if
+
+
+SKIN1=(OO2)*((U1**2)+(V1**2))
+!INTERNAL ENERGY 
+IE1=((P1)/((GAMMA-1.0D0)*R1))
+!TOTAL ENERGY
+E1=(P1/(GAMMA-1))+(R1*SKIN1)
+!VECTOR OF CONSERVED VARIABLES NOW
+VECCOS(1)=R1
+VECCOS(2)=R1*U1
+VECCOS(3)=R1*V1
+VECCOS(4)=E1
+
+
+
+
+
+
+
+
+end if
 
 
 

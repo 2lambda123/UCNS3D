@@ -608,7 +608,7 @@ SUBROUTINE FIND_ROT_ANGLES(N,ICONSI)
 IMPLICIT NONE
 real::Xc1,Yc1,Zc1,Xc2,Yc2,Zc2,Xc3,Yc3,Zc3,DELXYA,DELyzA,DELzxA,DELXYb,DELyzb,DELzxb,DELXYc,DELyzc,DELzxc,nx,ny,nz
 REAL::X5,X6,X7,X8,Y5,Y6,Y7,Y8,Z5,Z6,Z7,Z8,XX,YY,ZZ
-REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB
+REAL::DELXA,DELXB,DELYA,DELYB,DELZA,DELZB,L_ANGLE1,L_ANGLE2,lNX,LNY,LNZ
 INTEGER::K,KMAXE,I,J,kk,kk2,ixf4,IXFV
 INTEGER,INTENT(IN)::N,ICONSI
 KMAXE=XMPIELRANK(N)
@@ -749,8 +749,16 @@ i=iconsi
 					IELEM(N,I)%FACEANGLEX(K)=anglefacex
 					IELEM(N,I)%FACEANGLEY(K)=anglefacey
 					END IF
-			
-
+                    IELEM(N,I)%LUMP=0
+                    if (ielem(n,i)%ishape.eq.2)then
+                    L_ANGLE1=IELEM(N,I)%FACEANGLEX(K);L_ANGLE2=IELEM(N,I)%FACEANGLEY(K)
+                    LNX=COS(L_ANGLE1)*SIN(L_ANGLE2)
+                    LNY=SIN(L_ANGLE1)*SIN(L_ANGLE2)
+                    LNZ=COS(L_ANGLE2)
+                    if ((abs(LNX-1.0d0).le.10e-16).OR.(abs(LNY-1.0d0).le.10e-16).OR.(abs(LNZ-1.0d0).le.10e-16))THEN
+                    IELEM(N,I)%LUMP=100
+                    end if
+                    END IF
 
 
 			    END DO
@@ -1243,6 +1251,26 @@ i=iconsi
 		  
 		  detjc=deta(1)
 	    ILOCAL_RECON3(I)%VEXT_REF(1:3)=TEMP_cG(1:3)
+	    
+	    
+	    if ((poly.eq.4).OR.(DG.EQ.1))then
+		    ILOCAL_RECON3(I)%INVCCJAC(1:3,1:3)=zero
+		     ILOCAL_RECON3(I)%INVCCJAC(1,1)=1.0d0
+		      ILOCAL_RECON3(I)%INVCCJAC(2,2)=1.0d0
+		       ILOCAL_RECON3(I)%INVCCJAC(3,3)=1.0d0
+		      detjc=1.0
+		      
+		      TEMP_cG(1)=ielem(n,i)%xxc
+		      TEMP_cG(2)=ielem(n,i)%yyc
+		      TEMP_cG(3)=ielem(n,i)%zzc
+		      ILOCAL_RECON3(I)%VEXT_REF(1:3)=TEMP_cG(1:3)
+		    end if
+	    
+	    
+	    
+	    
+	    
+	    
 
 		DO JJ=1,IELEM(N,I)%ADMIS
 		
@@ -1692,7 +1720,7 @@ i=iconsi
             detjc=deta(1)
 		    ILOCAL_RECON3(I)%VEXT_REF(1:2)=VEXT(1,1:2)
 		    
-		    if (gridar1.gt.20)then
+		    if ((poly.eq.4).OR.(DG.EQ.1))then
 		    ILOCAL_RECON3(I)%INVCCJAC(1:2,1:2)=zero
 		     ILOCAL_RECON3(I)%INVCCJAC(1,1)=1.0d0
 		      ILOCAL_RECON3(I)%INVCCJAC(2,2)=1.0d0

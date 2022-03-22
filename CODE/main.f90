@@ -748,11 +748,7 @@ END IF
  
 IF (FASTEST_Q.EQ.1)THEN
     CALL MEMORY_FAST(N)
-    IF (DG.EQ.1)THEN
     
-    CALL PRESTORE_DG2
-     
-    END IF
     
     
     
