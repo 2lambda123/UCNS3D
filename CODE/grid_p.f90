@@ -6040,12 +6040,12 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             CASE (1,2,3)
                 idegfree2=3
                 IORDER2=1
-                NUMNEIGHBOURS2=7
+                NUMNEIGHBOURS2=9
             
             CASE(4,5,6,7)
                 idegfree2=3
                 IORDER2=1
-                NUMNEIGHBOURS2=7
+                NUMNEIGHBOURS2=9
             
             END SELECT
         END IF
@@ -6062,7 +6062,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             
             idegfree2=3
             IORDER2=1
-            NUMNEIGHBOURS2=7
+            NUMNEIGHBOURS2=9
             
             
             if (dg.eq.1)then
@@ -6111,13 +6111,13 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             CASE (1,2,3)
                 idegfree2=2
                 IORDER2=1
-                NUMNEIGHBOURS2=5
+                NUMNEIGHBOURS2=7
             
             
             CASE(4,5,6,7)
                 idegfree2=2
                 IORDER2=1
-                NUMNEIGHBOURS2=5
+                NUMNEIGHBOURS2=7
             
             END SELECT
         
