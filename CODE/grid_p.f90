@@ -1796,6 +1796,7 @@ REAL::DELTA,CPUER
 	
 ! 	if (itestcase.eq.4)then
 	allocate(ielem(n,i)%vortex(1)); ielem(n,i)%vortex=zero
+	ALLOCATE(IELEM(N,I)%AVARS(NOF_VARIABLES));
 ! 	end if
 	
 	SELECT CASE (IELEM(N,I)%ISHAPE)
@@ -5996,13 +5997,14 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
 	INTEGER,INTENT(OUT)::ILX     !NUMBER OF DEGREES OF FREEDOM
 	INTEGER,INTENT(INOUT)::NUMNEIGHBOURS
 	INTEGER,INTENT(IN)::IEXTEND,N
-	integer::i,itemd
+	integer::i,itemd,ilxx
 	
 	ALLOCATE(ISELEMT(N:N))
 	
 	IF (dimensiona.eq.3) THEN
         IF (IORDER.GE.2) THEN
             ILX=((IORDER+1)*(IORDER+2)*(IORDER+3))/6
+
             IDEGFREE=ILX-1
             NUMNEIGHBOURS=ILX*extf
             IMAXDEGFREE=NUMNEIGHBOURS-1
@@ -6019,6 +6021,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
                 ISELEMT(N:N)=ISELEM
                 IOVERST=ISELEM
                 IOVERTO=ISELEM
+                idegfree3=(((IORDER)*(IORDER+1)*(IORDER+2))/6)-1
             else
                 NUMNEIGHBOURS=ILX*extf
                 IMAXDEGFREE=NUMNEIGHBOURS-1
@@ -6073,6 +6076,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             ISELEMT(N:N)=ISELEM
             IOVERST=ISELEM
             IOVERTO=ISELEM
+            idegfree3=(((IORDER)*(IORDER+1)*(IORDER+2))/6)-1
             end if
             
             
@@ -6095,6 +6099,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
                 ISELEMT(N:N)=ISELEM
                 IOVERST=ISELEM
                 IOVERTO=ISELEM
+                idegfree3=(((IORDER)*(IORDER+1))/2)-1
             else
                 NUMNEIGHBOURS=ILX*extf
                 IMAXDEGFREE=NUMNEIGHBOURS-1
@@ -6136,6 +6141,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
                 ISELEMT(N:N)=ISELEM
                 IOVERST=ISELEM
                 IOVERTO=ISELEM
+                idegfree3=(((IORDER)*(IORDER+1))/2)-1
             else
                 NUMNEIGHBOURS=ILX*extf
                 IMAXDEGFREE=NUMNEIGHBOURS-1
@@ -6148,7 +6154,7 @@ SUBROUTINE DETERMINE_SIZE(N,IORDER,ISELEM,ISELEMT,IOVERST,IOVERTO,ILX,NUMNEIGHBO
             
             IORDER2=1
             idegfree2=2
-            NUMNEIGHBOURS2=5
+            NUMNEIGHBOURS2=7
         END IF
 	END IF
 	

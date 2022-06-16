@@ -845,7 +845,7 @@ SUBROUTINE READ_UCNS3D
 	    
             if (dg.eq.1)then
                 
-                IGQRULES=min(iorder+1,9)
+                IGQRULES=min(iorder+1,6)
                 else
                 IGQRULES=min(iorder,6)
                 end if

@@ -209,7 +209,7 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
         DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
         RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
         
-        
+
 
         end if
 

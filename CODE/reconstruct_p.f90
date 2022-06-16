@@ -8843,7 +8843,7 @@ INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq
 
 
 
-
+AVER_VARS=ZERO
 
 SUMVARS=ZERO
 MAXVARS=ZERO
@@ -8947,6 +8947,13 @@ I=ICONSIDERED
                     SUMVARS(IEX)=SUMVARS(IEX)+ABS(UTEMP(IK,IEX)-UTEMP(1,IEX))
                 END DO
                 DO IK=1,K
+                AVER_VARS(IEX)=AVER_VARS(IEX)+UTEMP(IK,IEX)
+
+                END DO
+                AVER_VARS(IEX)=AVER_VARS(IEX)/K
+
+
+                DO IK=1,K
                 MAXVARS(IEX)=MAX(MAXVARS(IEX),ABS(UTEMP(IK,IEX)))
                 END DO
 			  END DO
@@ -8961,6 +8968,224 @@ I=ICONSIDERED
 			  
 
 END SUBROUTINE FIND_BOUNDS
+
+SUBROUTINE FIND_BOUNDS2
+IMPLICIT NONE
+INTEGER::I,L,J,K,KMAXE,IQP,NGP,IEX,IK,iq
+
+
+
+
+	KMAXE=XMPIELRANK(N)
+
+
+
+
+	!$OMP DO
+	DO I=1,KMAXE
+	AVER_VARS=ZERO
+
+
+
+
+            UTEMP(1,1:NOF_VARIABLES)=U_C(I)%VAL(1,1:NOF_VARIABLES)
+
+            K=1
+            IF (IELEM(N,I)%INTERIOR.EQ.0)THEN
+                DO L = 1, IELEM(N,I)%IFCA
+                    K=K+1
+                    UTEMP(K,1:NOF_VARIABLES)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:NOF_VARIABLES)
+                END DO
+            END IF
+
+            IF (IELEM(N,I)%INTERIOR.EQ.1)THEN
+			    DO L=1,IELEM(N,I)%IFCA
+                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                            IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                                if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                                K=K+1
+                                UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+                                ELSE
+                                !NOT PERIODIC ONES IN MY CPU
+                                END IF
+                            ELSE
+                                K=K+1
+                                UTEMP(K,1:nof_variables)=U_C(IELEM(N,I)%INEIGH(L))%VAL(1,1:nof_variables)
+                            END IF
+                    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+
+                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                            K=K+1
+                            UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                            (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                            END IF
+                        ELSE
+
+                        K=K+1
+                        UTEMP(K,1:nof_variables)=IEXSOLHIR(ILOCAL_RECON3(I)%IHEXN(1,IELEM(N,I)%INDEXI(L)))%SOL&
+                        (ILOCAL_RECON3(I)%IHEXL(1,IELEM(N,I)%INDEXI(L)),1:nof_variables)
+                        END IF
+
+                    END IF
+
+			  END DO
+         END IF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			  DO IEX=1,NOF_VARIABLES
+
+                DO IK=1,K
+                AVER_VARS(IEX)=AVER_VARS(IEX)+UTEMP(IK,IEX)
+
+                END DO
+                AVER_VARS(IEX)=AVER_VARS(IEX)/K
+
+
+			  END DO
+
+
+
+			  IELEM(N,I)%AVARS(1:NOF_VARIABLES)=AVER_VARS(1:NOF_VARIABLES)
+
+
+			  END DO
+			  !$OMP END DO
+
+
+
+END SUBROUTINE FIND_BOUNDS2
+
+
+
+
+SUBROUTINE APPLY_FILTER(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,KMAXE,j,k
+
+KMAXE=XMPIELRANK(N)
+
+
+!$OMP DO
+DO I=1,KMAXE
+DO J=1,NOF_VARIABLES
+GRAD1AL(1:IDEGFREE)=0.0d0
+
+do k=1,idegfree
+GRAD1AL(k)=U_C(I)%VALDG(1,J,k+1)*MODAL_FILTER(k)
+end do
+U_C(I)%VALDG(1,J,2:IDEGFREE+1)=GRAD1AL(1:idegfree)
+
+END DO
+END DO
+!$OMP END DO
+
+
+
+END SUBROUTINE APPLY_FILTER
+
+
+SUBROUTINE APPLY_FILTER2(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+INTEGER::I,KMAXE,j,k
+
+KMAXE=XMPIELRANK(N)
+
+
+!$OMP DO
+DO I=1,KMAXE
+DO J=1,NOF_VARIABLES
+GRAD1AL(1:IDEGFREE)=0.0d0
+do k=1,idegfree
+GRAD1AL(k)=RHS(I)%VALDG(k+1,j)*MODAL_FILTER(k)
+end do
+RHS(I)%VALDG(2:IDEGFREE+1,j)=GRAD1AL(1:idegfree)
+END DO
+END DO
+!$OMP END DO
+
+
+
+END SUBROUTINE APPLY_FILTER2
+
+
+
+SUBROUTINE FILTER(N)
+implicit none
+INTEGER,INTENT(IN)::N
+INTEGER::fil_i,i,j
+real::filx,fil_nc,fil_s,fil_alpha,xorder
+real,dimension(1:9)::filter2
+real,dimension(1:200)::dgfr
+integer,dimension(0:9)::filt2
+
+
+fil_alpha=2
+fil_s=4
+fil_nc=0
+
+
+
+
+
+do fil_i=1,iorder
+!     if (fil_i.le.iorder-1)then
+!         filter2(fil_i)=1.0d0
+!     else
+        filx=-fil_alpha*(((fil_i+1-fil_nc)/(iorder+1-fil_nc))**fil_s)
+        filter2(fil_i)=exp(filx)
+!     end if
+
+		filt2(fil_i)=(((fil_i+1)*(fil_i+2)*(fil_i+3))/6)-1
+
+end do
+filt2(0)=0
+
+do i=1,iorder
+	do j=filt2(i-1)+1,filt2(i)
+	dgfr(j)=filter2(i)
+	end do
+end do
+
+
+! do j=1,90
+! 	write(150+n,*)j,dgfr(j)
+! end do
+
+do fil_i=1,IDEGFREE
+        MODAL_FILTER(fil_i)=dgfr(fil_i)!**(1.0d0/(1.0/dt))
+end do
+
+
+
+
+
+
+END SUBROUTINE FILTER
+
+
+
+
+
+
+
 
 
 

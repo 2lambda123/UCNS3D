@@ -3759,7 +3759,7 @@ INTEGER::I,J,K,L,ITER,DIP
 	ELSE
 	RESTART=0
         average_restart=0
-	RES_TIME=0.0
+	RES_TIME=0.0d0
 	END IF
 	
 
@@ -14970,7 +14970,7 @@ SUBROUTINE CALCULATE_ERROR(N)
  			if (n.eq.0)then
 			OPEN(30,FILE='Errors.dat',FORM='FORMATTED',ACTION='write',position='append')
 			if (initcond.eq.1)then
-			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,iorder,spatiladiscret,L0NORM,STENNORM/IMAXE
+			WRITE(30,'(I9,1X,I4,1X,I4,1X,E14.7,1X,E14.7)')IMAXE,T,spatiladiscret,L0NORM,STENNORM/IMAXE
 			
 			else
 			IF (INITCOND.NE.3)THEN

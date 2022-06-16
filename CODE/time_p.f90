@@ -220,7 +220,7 @@ KMAXE=XMPIELRANK(N)
         DT=tolbig
         
         
-        
+        !$OMP BARRIER
         
 	IF (ITESTCASE.LT.3)THEN
 	!$OMP DO REDUCTION (MIN:DT)
@@ -2107,7 +2107,14 @@ END SUBROUTINE RUNGE_KUTTA4
 SUBROUTINE CALL_FLUX_SUBROUTINES_3D
 IMPLICIT NONE
 
+
+
     if (dg.eq.1)then
+
+    !     CALL APPLY_FILTER(N)
+
+
+
     CALL SOL_INTEG_DG(N)
     END IF
     IF (FASTEST.EQ.1) THEN
@@ -2117,7 +2124,7 @@ IMPLICIT NONE
     END IF
         
     IF (DG == 1) THEN
-        
+
         CALL RECONSTRUCT_DG(N)
         CALL TROUBLE_INDICATOR1
         
@@ -2152,6 +2159,10 @@ IMPLICIT NONE
     CALL SOURCES_COMPUTATION(N)
     END IF
     END SELECT
+
+
+
+
         
 END SUBROUTINE CALL_FLUX_SUBROUTINES_3D
 
@@ -3687,7 +3698,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
       T=RES_TIME
       iscoun=1
       kmaxe=XMPIELRANK(n)
-      EVERY_TIME=RES_TIME+1.0D0
+      EVERY_TIME=FLOOR(RES_TIME)+1.0D0
       
 
 !$OMP BARRIER
@@ -3821,6 +3832,9 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			END IF
 			end if
 			
+
+!             print*,"iam here2"
+
 			!$OMP END MASTER 
 			!$OMP BARRIER	
 			
@@ -3862,7 +3876,7 @@ REAL::CPUT1,CPUT2,CPUT3,CPUT4,CPUT5,CPUT6,CPUT8,timec3,TIMEC1,TIMEC4,TIMEC8,TOTV
 			
 			
 			if (dg.eq.1)call SOL_INTEG_DG(N)
-			
+
 			
 			!$OMP BARRIER
 			!$OMP MASTER
@@ -4085,7 +4099,7 @@ kill=0
 T=res_time
 iscoun=1
 
-EVERY_TIME=RES_TIME+1.0D0
+EVERY_TIME=FLOOR(RES_TIME)+1.0D0
 
 !$OMP MASTER 
 CPUT1=CPUX1(1)
@@ -4200,6 +4214,7 @@ DO
         DT=MIN(DT,OUT_TIME-T)
     END IF
             
+
     !$OMP END MASTER 
     !$OMP BARRIER
 
@@ -4240,7 +4255,7 @@ DO
          
         
 ! Increment time
-
+    !$OMP BARRIER
     !$OMP MASTER
     IF (rungekutta.GE.11)THEN
         T=T+(DT)

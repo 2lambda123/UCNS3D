@@ -26,11 +26,17 @@ REAL,external:: ddot
  compwrt=-2
 NUMBER=IELEM(N,ICONSIDERED)%IORDER
 
+
+
+
 if (dimensiona.eq.2)then
 BASIS_TEMP = BASIS_REC2D(N, X1, Y1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
 else
 BASIS_TEMP = BASIS_REC(N, X1, Y1,z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
 end if
+
+
+
 
 
 
@@ -191,6 +197,8 @@ REAL::PH,INTEG
             IF (ITESTCASE.EQ.3)THEN
             
                 LEFTV=DG_SOL(N)
+
+
                 
                 
                     IF (DIMENSIONA.EQ.2)THEN
