@@ -388,6 +388,7 @@ SUBROUTINE VERTALLOCATION(N,vext,LEFTV,RIGHTV,VISCL,LAML)
 	REAL,ALLOCATABLE,DIMENSION(:)::VISCL,LAML
 	
 	ALLOCATE(SOLUTION_INTEG2(1:NOF_vARIABLES))
+	ALLOCATE(LEFTV_DER(NOF_VARIABLES, DIMENSIONA))
 	
 	
 	if (dimensiona.eq.3)then
@@ -1409,6 +1410,7 @@ end if
             
             allocate (M_1(i)%val(1:idegfree+1,1:idegfree+1));M_1(i)%val=zero
             
+            IF (ITESTCASE == 4) ALLOCATE(U_C(I)%BR2_AUX_VAR(IELEM(N,I)%IDEGFREE+1,NOF_VARIABLES,DIMENSIONA)) ! NS
             
         END IF
         
@@ -1545,7 +1547,6 @@ DO II=1,NOF_INTERIOR	!for all the interior elements
 		
                 if (fastest.ne.1)then
                 ALLOCATE (ILOCAL_RECON3(I)%ULEFTV(dims,IT-1,ielem(n,i)%ifca,points))
-                
                 
                 
                 else

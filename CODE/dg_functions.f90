@@ -4,6 +4,7 @@ USE BASIS
 USE DECLARATION
 USE DERIVATIVES
 USE LAPCK
+USE FLOW_OPERATIONS
 
 IMPLICIT NONE
 
@@ -32,7 +33,7 @@ NUMBER=IELEM(N,ICONSIDERED)%IORDER
 if (dimensiona.eq.2)then
 BASIS_TEMP = BASIS_REC2D(N, X1, Y1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
 else
-BASIS_TEMP = BASIS_REC(N, X1, Y1,z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
+BASIS_TEMP = BASIS_REC(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
 end if
 
 
@@ -64,11 +65,9 @@ REAL,external:: ddot
 
  compwrt=-2
 
-x1= ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,1)
- y1= ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,2)
-if (dimensiona.eq.3)then
- z1= ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,3)
-end if
+X1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,1)
+Y1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,2)
+IF (DIMENSIONA.EQ.3) Z1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(FACEX,POINTX,3)
 
 
 
@@ -97,6 +96,35 @@ END DO
 
 END FUNCTION DG_SOLFACE
 
+FUNCTION DG_SOL_DER()
+IMPLICIT NONE
+    INTEGER::I_DOF, I_VAR, I_DIM
+    REAL,DIMENSION(NUMBER_OF_DOG, DIMENSIONA)::BASIS_TEMP
+    REAL,DIMENSION(NOF_VARIABLES, DIMENSIONA)::DG_SOL_DER
+    REAL,DIMENSION(NOF_VARIABLES, NUM_DG_DOFS)::U_C_PRIM
+    REAL,external:: DDOT
+
+
+!     DO I_DOF = 1, NUMBER_OF_DOG
+!         if (dimensiona.eq.2) then
+!             BASIS_TEMP(I_DOF,1) = DF2DX(X1,Y1,I_DOF)
+!             BASIS_TEMP(I_DOF,2) = DF2DY(X1,Y1,I_DOF)
+!         ELSE
+!             BASIS_TEMP(I_DOF,1) = TL3DX(X1,Y1,Z1,I_DOF)
+!             BASIS_TEMP(I_DOF,2) = TL3DY(X1,Y1,Z1,I_DOF)
+!             BASIS_TEMP(I_DOF,3) = TL3DZ(X1,Y1,Z1,I_DOF)
+!         end if
+!     END DO
+    
+!     WRITE(500+N,*) 'U_C_PRIM', U_C_PRIM, 'BASIS_TEMP', BASIS_TEMP
+
+    DO I_VAR = 1, NOF_VARIABLES
+        DO I_DIM = 1, DIMENSIONA
+            DG_SOL_DER(I_VAR, I_DIM) = U_C(ICONSIDERED)%BR2_AUX_VAR(1,I_VAR,I_DIM) + DDOT(NUMBER_OF_DOG, BASIS_REC(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG),1, U_C(ICONSIDERED)%BR2_AUX_VAR(2:NUM_DG_DOFS,I_VAR,I_DIM),1)
+!             DG_SOL_DER(I_VAR, I_DIM) = DDOT(NUMBER_OF_DOG, BASIS_TEMP(1:NUMBER_OF_DOG,I_DIM),1, U_C(ICONSIDERED)%VALDG(1,I_VAR,2:NUM_DG_DOFS),1)
+        END DO
+    END DO
+END FUNCTION DG_SOL_DER
 
 
 FUNCTION DG_SURF_FLUX(N)
@@ -161,14 +189,14 @@ REAL::PH,INTEG
     
     
 
-    NQP = ielem(n,iconsidered)%iTOTALPOINTS 
+    NQP = IELEM(N,ICONSIDERED)%ITOTALPOINTS 
 	
 
     NUMBER=IELEM(N,ICONSIDERED)%IORDER
     NUMBER_OF_DOG = IELEM(N,ICONSIDERED)%IDEGFREE
     
  
-    DG_VOL_INTEGRAL(:,:) = 0.0d0
+    DG_VOL_INTEGRAL(:,:) = 0.0D0
 
      
 
@@ -179,80 +207,99 @@ REAL::PH,INTEG
         
             X1=QP_ARRAY(ICONSIDERED)%X(I_QP)
             Y1=QP_ARRAY(ICONSIDERED)%Y(I_QP)
-            if (dimensiona.eq.3)then
-            z1=QP_ARRAY(ICONSIDERED)%z(I_QP)
-            end if
+            IF (DIMENSIONA.EQ.3)THEN
+            Z1=QP_ARRAY(ICONSIDERED)%Z(I_QP)
+            END IF
 
-            if (itestcase.lt.3)Then 
-            FLUX_TERM_X=dg_sol(n)*LAMX !flux in x-axis of linear advection in 2d (lamx*sol), where lamx is the wave speed for x axis, and sol is the solution
-            FLUX_TERM_Y=dg_sol(n)*LAMY !flux in y-axis of linear advection in 2d (lamy*sol), where lamy is the wave speed for y axis, and sol is the solution
-            if (dimensiona.eq.3)then
-            FLUX_TERM_z=dg_sol(n)*LAMz
-            end if
-            
-            
-            end if
-            
-            
-            IF (ITESTCASE.EQ.3)THEN
+            if (itestcase.lt.3) then ! Linear advection
+                FLUX_TERM_X=dg_sol(n)*LAMX !flux in x-axis of linear advection in 2d (lamx*sol), where lamx is the wave speed for x axis, and sol is the solution
+                FLUX_TERM_Y=dg_sol(n)*LAMY !flux in y-axis of linear advection in 2d (lamy*sol), where lamy is the wave speed for y axis, and sol is the solution
+                
+                if (dimensiona.eq.3) FLUX_TERM_z = dg_sol(n)*LAMz
+                
+            ELSE IF (ITESTCASE.EQ.3) THEN ! Euler
             
                 LEFTV=DG_SOL(N)
 
 
                 
                 
-                    IF (DIMENSIONA.EQ.2)THEN
+                IF (DIMENSIONA.EQ.2)THEN
                     CALL CONS2PRIM2D(N)
                    
                     CALL FLUX2DX
                     CALL FLUX2DY
                     
-                    
-                    
-                    ELSE
+                ELSE
                     
                     CALL CONS2PRIM(N)
                     CALL FLUX3DX
                     CALL FLUX3DY
                     CALL FLUX3DZ
                     
-                    END IF
+                END IF
                 
+            ELSE IF (ITESTCASE == 4) THEN ! NS
+                LEFTV = DG_SOL(N)
+                LEFTV_DER = DG_SOL_DER()
+                
+                IF (DIMENSIONA.EQ.2)THEN
+                    CALL CONS2PRIM2D(N)
+                    CALL FLUX2DX
+                    CALL FLUX2DY
+                    CALL SUTHERLAND2D(N, LEFTV, LEFTV)
+                    CALL FLUX_VISC2D
+                ELSE
+                    CALL CONS2PRIM(N)
+                    CALL FLUX3DX
+                    CALL FLUX3DY
+                    CALL FLUX3DZ
+                    CALL FLUX_VISC3D(N)
+                END IF
+                
+                
+!                 WRITE(500+N,*) 'LEFTV', LEFTV, 'LEFTV_DER', LEFTV_DER, 'FLUX_TERM_X', FLUX_TERM_X, 'FLUX_TERM_Y', FLUX_TERM_Y, 'FLUX_TERM_Z', FLUX_TERM_Z
+!                 
+!                 
+!                 IF (LEFTV(1) /= LEFTV(1)) THEN
+!                     IF (N == 0) PRINT*, "STOPPING BECAUSE NaNs"
+!                     STOP
+!                 END IF
             END IF
             
              
-                    if (dimensiona.eq.2)then
+            if (dimensiona.eq.2)then
+            
+            
+                if (poly.eq.1)then
+                
+                DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP) *(FLUX_TERM_X(:)*DF2DX(X1,Y1,I)+FLUX_TERM_Y(:)*DF2DY(X1,Y1,I))
+                
+                end if
+                
+                if (poly.eq.4)then
+                
+                DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*(FLUX_TERM_X(:)*TL2DX(X1,Y1,I)+FLUX_TERM_Y(:)*TL2DY(X1,Y1,I))
+                
+                end if
+            
+            
+            else
+                if (poly.eq.1)then 
                     
+                    DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP) *((FLUX_TERM_X(:)*DFX(X1,Y1,z1,I))&
+                    +(FLUX_TERM_Y(:)*DFY(X1,Y1,z1,I))+(FLUX_TERM_z(:)*DFZ(X1,Y1,z1,I)))
                     
-                    if (poly.eq.1)then
+                END IF
                     
-                    DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP) *(FLUX_TERM_X(:)*DF2DX(X1,Y1,I)+FLUX_TERM_Y(:)*DF2DY(X1,Y1,I))
+                if (poly.eq.4)then 
                     
-                    end if
+                    DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*((FLUX_TERM_X(:)*TL3DX(X1,Y1,z1,I))&
+                    +(FLUX_TERM_Y(:)*TL3DY(X1,Y1,z1,I))+(FLUX_TERM_z(:)*TL3DZ(X1,Y1,z1,I)))
                     
-                    if (poly.eq.4)then
-                    
-                    DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*(FLUX_TERM_X(:)*TL2DX(X1,Y1,I)+FLUX_TERM_Y(:)*TL2DY(X1,Y1,I))
-                    
-                    end if
-                    
-                    
-                    else
-                            if (poly.eq.1)then 
-                            
-                            DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP) *((FLUX_TERM_X(:)*DFX(X1,Y1,z1,I))&
-                            +(FLUX_TERM_Y(:)*DFY(X1,Y1,z1,I))+(FLUX_TERM_z(:)*DFZ(X1,Y1,z1,I)))
-                            
-                            END IF
-                            
-                            if (poly.eq.4)then 
-                            
-                            DG_VOL_INTEGRAL(I+1,:) = DG_VOL_INTEGRAL(I+1,:)+ QP_ARRAY(ICONSIDERED)%QP_WEIGHT(I_QP)*((FLUX_TERM_X(:)*TL3DX(X1,Y1,z1,I))&
-                            +(FLUX_TERM_Y(:)*TL3DY(X1,Y1,z1,I))+(FLUX_TERM_z(:)*TL3DZ(X1,Y1,z1,I)))
-                            
-                            END IF
-                    
-                    END IF
+                END IF
+            
+            END IF
          END DO
      END DO
 
@@ -261,7 +308,6 @@ REAL::PH,INTEG
 
         compwrt=0
 END FUNCTION DG_VOL_INTEGRAL
-
 
 
 FUNCTION DG_VOL_INTEGRAL2(N)
@@ -345,21 +391,19 @@ DO I_ELEM = 1, XMPIELRANK(N)
     compwrt=-2
 
     DO I_FACE = 1, IELEM(N,I_ELEM)%IFCA
-            !SOMEWHERE PRESTORED THE GUASSIAN QUADRATURE POINTS FOR YOUR SIDES IN ANOTHER SUBROUTINE AND YOU BUILD ONLY THE cleft STATES AND VOLUME INTEGRAL
-            
-            if (dimensiona.eq.2)then
-
+        !SOMEWHERE PRESTORED THE GUASSIAN QUADRATURE POINTS FOR YOUR SIDES IN ANOTHER SUBROUTINE AND YOU BUILD ONLY THE cleft STATES AND VOLUME INTEGRAL
+        
+        if (dimensiona.eq.2)then
             iqp=QP_LINE_N
+        else
+            if (ielem(n,I_ELEM)%types_faces(I_FACE).eq.5)then
+                iqp=qp_quad
             else
-                if (ielem(n,I_ELEM)%types_faces(I_FACE).eq.5)then
-					iqp=qp_quad
-				  else
-					iqp=QP_TRIANGLE
-					
-				  end if
+                iqp=QP_TRIANGLE
             end if
+        end if
             
-        DO I_QP = 1,iqp! QP_LINE_N
+        DO I_QP = 1,iqp
             
             FACEX=I_FACE
             POINTX=I_QP
@@ -368,9 +412,6 @@ DO I_ELEM = 1, XMPIELRANK(N)
 
             
             ILOCAL_RECON3(ICONSIDERED)%ULEFT_DG(:, FACEX, POINTX) = DG_SOLFACE(N)
-         
-            
-            
             
             
         END DO
@@ -381,12 +422,178 @@ DO I_ELEM = 1, XMPIELRANK(N)
 END DO
 !$OMP END DO
 
+IF (ITESTCASE == 4) THEN
+    CALL CALC_BR2_AUX_VAR(N)
+END IF
+
 END SUBROUTINE RECONSTRUCT_DG
 
 
 
 
+SUBROUTINE CALC_BR2_AUX_VAR(N)
+!> @brief
+!> This subroutine computes the surface term for the BR2 viscous flux
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,L,NGP,KMAXE,IQP,I_VAR,I_DIM,I_DOF
+	REAL,DIMENSION(3)::NNN
+	REAL,DIMENSION(NOF_VARIABLES)::DG_SOL_TEMP
+	REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
+	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
+	REAL,EXTERNAL::DDOT
+	
+	KMAXE = XMPIELRANK(N)
+	
+	call QUADRATUREQUAD3D(N,IGQRULES)
+	WEIGHTS_Q(1:QP_QUAD) = WEQUA2D(1:QP_QUAD)
+	
+	call QUADRATURETRIANG(N,IGQRULES)
+	WEIGHTS_T(1:QP_TRIANGLE) = WEQUA2D(1:QP_TRIANGLE)
 
+	if(reduce_comp.eq.1)then
+        WEIGHTS_T=1.0d0; WEIGHTS_Q=1.0d0
+	end if
+	
+	!$OMP DO SCHEDULE (STATIC)
+	DO I = 1, KMAXE
+        ICONSIDERED = I
+        NUMBER = IELEM(N,I)%IORDER
+        
+        U_C(I)%BR2_AUX_VAR = 0.0D0
+        
+        ! Calculate surface term
+        DO L=1,IELEM(N,I)%IFCA !for all their faces
+            ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+            ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+            NX=(COS(ANGLE1)*SIN(ANGLE2))
+            NY=(SIN(ANGLE1)*SIN(ANGLE2))
+            NZ=(COS(ANGLE2))
+            NNN(1)=NX;NNN(2)=NY;NNN(3)=NZ
+            if (ielem(n,i)%types_faces(L).eq.5)then
+                iqp=qp_quad_n
+                WEIGHTS_TEMP(1:IQP)=WEIGHTS_Q(1:IQP)
+            else
+                iqp=QP_TRIANGLE_n
+                WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
+            end if
+            
+            do NGP=1,iqp	!for all the gaussian quadrature points
+                CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                
+                
+                ! Set CRIGHT
+                IF (IELEM(N,I)%INTERIOR == 0) THEN ! CELL IS INTERIOR
+                    CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                ELSE IF (IELEM(N,I)%INEIGHB(L).EQ.N) THEN !MY CPU ONLY
+                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5) then	!PERIODIC IN MY CPU
+                            CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                
+                        ELSE !NOT PERIODIC ONES IN MY CPU
+                            
+                            facex=l;iconsidered=i
+                            CALL coordinates_face_innerx(N,Iconsidered,facex)
+                            CORDS(1:3)=zero
+                            CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+                        
+                            Poy(1)=cords(2)
+                            Pox(1)=cords(1)
+                            poz(1)=cords(3)
+                            
+                            LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+                            B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+                            CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+                            cright(1:nof_Variables)=rightv(1:nof_Variables)
+                        END IF
+                    ELSE
+                        CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                    END IF
+                ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5) then	!PERIODIC IN OTHER CPU
+                            CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                        END IF
+                    ELSE
+                        CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                    END IF
+                END IF
+                
+                DO I_VAR = 1, NOF_VARIABLES
+                    DO I_DIM = 1, DIMENSIONA
+                        U_C(I)%BR2_AUX_VAR(1,I_VAR,I_DIM) = U_C(I)%BR2_AUX_VAR(1,I_VAR,I_DIM) + (CRIGHT(I_VAR) - CLEFT(I_VAR)) * NNN(I_DIM) * WEIGHTS_TEMP(NGP) * IELEM(N, ICONSIDERED)%SURF(L)
+                        
+                        U_C(I)%BR2_AUX_VAR(2:NUM_DG_DOFS,I_VAR,I_DIM) = U_C(I)%BR2_AUX_VAR(2:NUM_DG_DOFS,I_VAR,I_DIM) + (CRIGHT(I_VAR) - CLEFT(I_VAR)) * NNN(I_DIM) * BASIS_REC(N,X1,Y1,Z1,NUMBER,ICONSIDERED,NUMBER_OF_DOG) * WEIGHTS_TEMP(NGP) * IELEM(N, ICONSIDERED)%SURF(L)
+                    END DO
+                END DO
+                    
+            END DO !for each Gaussian quadrature points ngp
+        END DO !for each face L
+        
+        U_C(I)%BR2_AUX_VAR = U_C(I)%BR2_AUX_VAR * OO2
+        
+        
+        ! Calculate volume term
+        IQP = IELEM(N,ICONSIDERED)%ITOTALPOINTS
+        NUMBER = IELEM(N,ICONSIDERED)%IORDER
+        NUMBER_OF_DOG = IELEM(N,ICONSIDERED)%IDEGFREE
+        
+        DO NGP = 1, IQP
+            X1 = QP_ARRAY(ICONSIDERED)%X(NGP)
+            Y1 = QP_ARRAY(ICONSIDERED)%Y(NGP)
+            IF (DIMENSIONA.EQ.3) Z1 = QP_ARRAY(ICONSIDERED)%Z(NGP)
+            
+            DG_SOL_TEMP = DG_SOL(N)
+            
+            DO I_DOF = 1, NUMBER_OF_DOG
+                IF (POLY == 1) THEN
+                    U_C(I)%BR2_AUX_VAR(I_DOF,:,1) = U_C(I)%BR2_AUX_VAR(I_DOF,:,1) + DG_SOL_TEMP * QP_ARRAY(I)%QP_WEIGHT(NGP) * DFX(X1,Y1,Z1,I_DOF)
+                    
+                    U_C(I)%BR2_AUX_VAR(I_DOF,:,2) = U_C(I)%BR2_AUX_VAR(I_DOF,:,2) + DG_SOL_TEMP * QP_ARRAY(I)%QP_WEIGHT(NGP) * DFY(X1,Y1,Z1,I_DOF)
+                    
+                    U_C(I)%BR2_AUX_VAR(I_DOF,:,3) = U_C(I)%BR2_AUX_VAR(I_DOF,:,3) + DG_SOL_TEMP * QP_ARRAY(I)%QP_WEIGHT(NGP) * DFZ(X1,Y1,Z1,I_DOF)
+                ELSE IF (POLY == 4) THEN
+                    U_C(I)%BR2_AUX_VAR(I_DOF,:,1) = U_C(I)%BR2_AUX_VAR(I_DOF,:,1) + DG_SOL_TEMP * QP_ARRAY(I)%QP_WEIGHT(NGP) * TL3DX(X1,Y1,Z1,I_DOF)
+                    
+                    U_C(I)%BR2_AUX_VAR(I_DOF,:,2) = U_C(I)%BR2_AUX_VAR(I_DOF,:,2) + DG_SOL_TEMP * QP_ARRAY(I)%QP_WEIGHT(NGP) * TL3DY(X1,Y1,Z1,I_DOF)
+                    
+                    U_C(I)%BR2_AUX_VAR(I_DOF,:,3) = U_C(I)%BR2_AUX_VAR(I_DOF,:,3) + DG_SOL_TEMP * QP_ARRAY(I)%QP_WEIGHT(NGP) * TL3DZ(X1,Y1,Z1,I_DOF)
+                END IF
+            END DO
+        END DO
+            
+        DO I_DIM = 1, DIMENSIONA
+            U_C(I)%BR2_AUX_VAR(:,:,I_DIM) = MATMUL(M_1(I)%VAL, U_C(I)%BR2_AUX_VAR(:,:,I_DIM))
+        END DO
+        
+        
+        DO L=1,IELEM(N,I)%IFCA !for all their faces
+            IF (IELEM(N,I)%TYPES_FACES(L).EQ.5)THEN
+                IQP=QP_QUAD_N
+                WEIGHTS_TEMP(1:IQP)=WEIGHTS_Q(1:IQP)
+            ELSE
+                IQP=QP_TRIANGLE_N
+                WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
+            END IF
+            
+            DO NGP=1,IQP	!for all the gaussian quadrature points
+                X1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(L,NGP,1)
+                Y1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(L,NGP,2)
+                Z1 = ILOCAL_RECON3(ICONSIDERED)%QPOINTS(L,NGP,3)
+                
+                BASIS_TEMP = BASIS_REC(N, X1, Y1, Z1, NUMBER, ICONSIDERED, NUMBER_OF_DOG)
+                
+                DO I_VAR = 1, NOF_VARIABLES
+                    DO I_DIM = 1, DIMENSIONA
+                        ILOCAL_RECON3(I)%BR2_AUX_VAR(I_VAR,I_DIM,L,NGP) = U_C(I)%BR2_AUX_VAR(1,I_VAR,I_DIM) + DDOT(NUMBER_OF_DOG, U_C(I)%BR2_AUX_VAR(2:NUM_DG_DOFS,I_VAR,I_DIM), 1, BASIS_TEMP(1:NUMBER_OF_DOG), 1)
+                    END DO
+                END DO
+            END DO
+        END DO
+        
+	END DO !for each element I
+	!$OMP END DO
+END SUBROUTINE CALC_BR2_AUX_VAR
 
 
 
@@ -478,8 +685,12 @@ SUBROUTINE ALLOCATE_DG
         END SELECT
     
 
-    ALLOCATE(ILOCAL_RECON3(I)%ULEFT_DG(NOF_VARIABLES, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
-    
+        ALLOCATE(ILOCAL_RECON3(I)%ULEFT_DG(NOF_VARIABLES, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
+        
+        IF(ITESTCASE == 4) THEN !NS
+            ALLOCATE(ILOCAL_RECON3(I)%BR2_AUX_VAR(NOF_VARIABLES, DIMENSIONA, IELEM(N,I)%IFCA, NUMBEROFPOINTS2))
+            ILOCAL_RECON3(I)%BR2_AUX_VAR = ZERO
+        END IF
     
     END DO
     
@@ -643,25 +854,6 @@ SUBROUTINE PRESTORE_DG1
                 
 
 END SUBROUTINE
-
-
-
-
-
-SUBROUTINE PRESTORE_DG2
-!> @brief
-!> Prestores IELEM(N,I)%DELTA_XYZ, QP_ARRAY, SURF_QPOINTS, mass matrix
-    IMPLICIT NONE
-    INTEGER::I, K, I_QP, N_QP, I_FACE,nnd,iqp,idummy,COUNT_1,loopc,ngp,l
-    real,dimension(1:idegfree+1)::tempint
-    real::tempf,tempx
-    
-    
-    
-    
-    
-END SUBROUTINE 
-
 
 
 

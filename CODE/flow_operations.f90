@@ -1769,20 +1769,17 @@ SUBROUTINE SUTHERLAND(N,leftv,rightv)
 		
 		T1R=RIGHTv(5)/RIGHTv(1)
 		T0R=PRES/RRES
-
 	      	
-              VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
-              VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
+        VISCL(1)=VISC*((T1L/T0L)**BETAAS)*((T0L+(SUTHER*T0L))/(T1L+(SUTHER*T0L)))
+        VISCL(2)=VISC*((T1R/T0R)**BETAAS)*((T0R+(SUTHER*T0R))/(T1R+(SUTHER*T0R)))
 
+        
+!         WRITE(500+N,*) 'VISCL', VISCL(1), 'VISC', VISC, 'T1L', T1L, 'T0L', T0L, 'BETAAS', BETAAS, 'SUTHER', SUTHER
 	      
-	      LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
-	      LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+        LAML(1)=VISCL(1)*GAMMA/(PRANDTL*(GAMMA-1.d0))
+        LAML(2)=VISCL(2)*GAMMA/(PRANDTL*(GAMMA-1.d0))
 	  
 	
-	     
-	   
-
-      
 
   END SUBROUTINE SUTHERLAND
   
@@ -3908,6 +3905,107 @@ FLUX_TERM_Z(2)=r*u*w
 FLUX_TERM_Z(3)=R*v*w
 FLUX_TERM_Z(4)=(R*(w**2))+P
 FLUX_TERM_Z(5)=w*(E+P)
+
+END SUBROUTINE
+
+SUBROUTINE FLUX_VISC2D
+IMPLICIT NONE
+REAL:: U, V, UX, UY, VX, VY, RHO, R, P, TX, TY, RHOX, RHOY, PX, PY, TAUXX, TAUXY, TAUYY
+
+     RHO = LEFTV(1)
+       U = LEFTV(2)
+       V = LEFTV(3)
+       P = LEFTV(4)
+    RHOX = LEFTV_DER(1,1)
+    RHOY = LEFTV_DER(1,2)
+      UX = LEFTV_DER(2,1)
+      UY = LEFTV_DER(2,2)
+      VX = LEFTV_DER(3,1)
+      VY = LEFTV_DER(3,2)
+      PX = LEFTV_DER(4,1)
+      PY = LEFTV_DER(4,2)
+     
+    TX = (PX * RHO - RHOX * P) / RHO**2 / 287.058 !R
+    TY = (PY * RHO - RHOY * P) / RHO**2 / 287.058 !R
+    
+    TAUXX = 2.0D0 / 3.0D0 * VISCL(1) * (2 * UX - VY)
+    TAUYY = 2.0D0 / 3.0D0 * VISCL(1) * (2 * VY - UX)
+    TAUXY = VISCL(1) * (UY + VX)
+    
+    FLUX_TERM_X(2) = FLUX_TERM_X(2) - TAUXX
+    FLUX_TERM_X(3) = FLUX_TERM_X(3) - TAUYY
+    FLUX_TERM_X(4) = FLUX_TERM_X(4) - (U * TAUXX + V * TAUXY + LAML(1) * TX)
+    FLUX_TERM_Y(2) = FLUX_TERM_Y(2) - TAUXY
+    FLUX_TERM_Y(3) = FLUX_TERM_Y(3) - TAUYY
+    FLUX_TERM_Y(4) = FLUX_TERM_Y(4) - (U * TAUXY + V * TAUYY + LAML(1) * TY)
+
+END SUBROUTINE
+
+SUBROUTINE FLUX_VISC3D(N)
+IMPLICIT NONE
+INTEGER,INTENT(IN)::N
+REAL:: U, V, UX, UY, VX, VY, RHO, R, P, TX, E, TY, RHOX, RHOY, EX, EY, TAUXX, TAUXY, TAUYY, W, UZ, VZ, WX, WY, WZ, RHOZ, TZ, EZ, TAUXZ, TAUYZ, TAUZZ
+
+
+    CALL SUTHERLAND(N, LEFTV, LEFTV)
+
+! Variables extrapolated at boundary
+     RHO = LEFTV(1)
+       U = LEFTV(2)
+       V = LEFTV(3)
+       W = LEFTV(4)
+       P = LEFTV(5)
+       R = 287.058
+       E = P / RHO / (GAMMA - 1) + (U**2 + V**2 + W**2) / 2.0D0
+       
+    RHOX = LEFTV_DER(1,1)
+    RHOY = LEFTV_DER(1,2)
+    RHOZ = LEFTV_DER(1,3)
+    
+      UX = (LEFTV_DER(2,1) - RHOX * U) / RHO
+      UY = (LEFTV_DER(2,2) - RHOY * U) / RHO
+      UZ = (LEFTV_DER(2,3) - RHOZ * U) / RHO
+      
+      VX = (LEFTV_DER(3,1) - RHOX * V) / RHO
+      VY = (LEFTV_DER(3,2) - RHOY * V) / RHO
+      VZ = (LEFTV_DER(3,3) - RHOZ * V) / RHO
+      
+      WX = (LEFTV_DER(4,1) - RHOX * W) / RHO
+      WY = (LEFTV_DER(4,2) - RHOY * W) / RHO
+      WZ = (LEFTV_DER(4,3) - RHOZ * W) / RHO
+      
+      EX = LEFTV_DER(5,1)
+      EY = LEFTV_DER(5,2)
+      EZ = LEFTV_DER(5,3)
+     
+      TX = (GAMMA - 1) / R * ((RHO * EX - E * RHOX) / (RHO * RHO) - (U * UX + V * VX))
+      TY = (GAMMA - 1) / R * ((RHO * EY - E * RHOY) / (RHO * RHO) - (U * UY + V * VY))
+      TZ = (GAMMA - 1) / R * ((RHO * EZ - E * RHOZ) / (RHO * RHO) - (U * UZ + V * VZ))
+    
+    TAUXX = 2.0D0 / 3.0D0 * VISCL(1) * (2 * UX - VY - WZ)
+    TAUYY = 2.0D0 / 3.0D0 * VISCL(1) * (2 * VY - UX - WZ)
+    TAUXY = VISCL(1) * (UY + VX)
+    
+    TAUXZ = VISCL(1) * (UZ + WX)
+    TAUYZ = VISCL(1) * (WY + VZ)
+    TAUZZ = 2.0D0 / 3.0D0 * VISCL(1) * (2 * WZ - UX - VY)
+    
+    FLUX_TERM_X(2) = FLUX_TERM_X(2) - TAUXX
+    FLUX_TERM_X(3) = FLUX_TERM_X(3) - TAUYY
+    FLUX_TERM_X(4) = FLUX_TERM_X(4) - TAUYZ
+    FLUX_TERM_X(5) = FLUX_TERM_X(5) - (U * TAUXX + V * TAUXY + W * TAUXZ + LAML(1) * TX)
+    
+    FLUX_TERM_Y(2) = FLUX_TERM_Y(2) - TAUXY
+    FLUX_TERM_Y(3) = FLUX_TERM_Y(3) - TAUYY
+    FLUX_TERM_Y(4) = FLUX_TERM_Y(4) - TAUXZ
+    FLUX_TERM_Y(5) = FLUX_TERM_Y(5) - (U * TAUXY + V * TAUYY + W * TAUYZ + LAML(1) * TY)
+    
+    FLUX_TERM_Z(2) = FLUX_TERM_Z(2) - TAUXZ
+    FLUX_TERM_Z(3) = FLUX_TERM_Z(3) - TAUYZ
+    FLUX_TERM_Z(4) = FLUX_TERM_Z(4) - TAUZZ
+    FLUX_TERM_Z(5) = FLUX_TERM_Z(5) - (U * TAUXZ + V * TAUYZ + W * TAUZZ + LAML(1) * TZ)
+    
+!     WRITE(500+N,*) 'LEFTV', LEFTV, 'LEFTV_DER', LEFTV_DER, 'TAU', TAUXX, TAUXY, TAUXZ, TAUYY, TAUYZ, TAUZZ, VISCL(1), TX, TY, TZ
 
 END SUBROUTINE
 

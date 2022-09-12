@@ -7,6 +7,7 @@ USE FLOW_OPERATIONS
 USE DECLARATION
 USE BASIS
 USE DG_FUNCTIONS
+USE GRADIENTS
 IMPLICIT NONE
 ! !**************************DEVELOPED BY PANAGIOTIS TSOUTSANIS**************************!
 ! !*****************************FMACS RESEARCH GROUP CRANFIELD **************************!
@@ -161,7 +162,6 @@ SUBROUTINE CALCULATE_FLUXESHI(N)
 							ELSE
 							     IF (dg == 1) THEN
                                 CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
-!                                 WRITE(500+N,*)'my cpu not boundary'
                             ELSE  
                             CRIGHT(1:nof_variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_variables,IELEM(N,I)%INEIGHN(L),NGP)
                             end if
@@ -293,11 +293,9 @@ SUBROUTINE CALCULATE_FLUXESHI2D(N)
 
                     IF (DG.EQ.1) THEN
                         ! Riemann flux at interface quadrature points times basis
-                        RHLLCFLUX(1)=HLLCFLUX(1)
+                        RHLLCFLUX(1) = HLLCFLUX(1)
                          
                         DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
-                       
-                         
 
                     ELSE !FV
                         GODFLUX2=GODFLUX2+(HLLCFLUX(1)*(WEIGHTS_TEMP_LINE(NGP)*IELEM(N,I)%SURF(L)))
@@ -435,7 +433,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
             DG_RHS_SURF_INTEG = ZERO
             DG_RHS_VOL_INTEG = ZERO
             
-             DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+            DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
                 
             END IF
             
@@ -628,6 +626,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                  END IF
                  
                  IF (DG.eq.1)then
+!                     WRITE(500+N,*) 'U_C(I)%VALDG', U_C(I)%VALDG(1,:,:), 'DG_RHS_SURF_INTEG', DG_RHS_SURF_INTEG, 'DG_RHS_VOL_INTEG', DG_RHS_VOL_INTEG
                     DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
                     RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
 
@@ -657,30 +656,29 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 		    FACEX=L
                         igoflux=0
 		     IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-                                                                icaseb=1        !periodic mine
-                                                        else
-                                                                icaseb=3        !physical
-                                                        end if
-                                                   
-                                                    ELSE
-                                                    
-                                                                icaseb=2!no boundaries interior
-                                                    
-                                                    end if
-                                else
-                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                                                                icaseb=4
-                                                                end if
-                                                    else
-                                                                icaseb=5
-                                                    
-                                                    end if
-                                
-                                
-                                end if
+                IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
+                            icaseb=1        !periodic mine
+                    else
+                            icaseb=3        !physical
+                    end if
+                
+                ELSE
+                
+                            icaseb=2!no boundaries interior
+                
+                end if
+            else
+                IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
+                        icaseb=4
+                    end if
+                else
+                    icaseb=5
+            
+                end if
+        
+            end if
 ! 				  IF (icaseb.le.2)THEN
 !                                         IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
 !                                             igoflux=1
@@ -953,7 +951,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
 				       
 				     if (dg.eq.1)then
 				      DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
-				      
+! 				      WRITE(500+N,*) IELEM(N,I)%INEIGHB(L), IELEM(N,I)%IBOUNDS(L),'DG_RHS_SURF_INTEG', DG_RHS_SURF_INTEG
 				       
 				      
 				      else
@@ -1028,6 +1026,7 @@ SUBROUTINE CALCULATE_FLUXESHI_CONVECTIVE(N)
                  END IF
                  
                     IF (DG.eq.1)then
+!                     WRITE(500+N,*) 'U_C(I)%VALDG', U_C(I)%VALDG(1,:,:), 'DG_RHS_VOL_INTEG', DG_RHS_VOL_INTEG
                     DG_RHS = DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
                     RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS
 
@@ -1656,6 +1655,8 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
+	
+        IF (DG == 1) DG_RHS_SURF_INTEG = ZERO
                     
 		   damp=lamx
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
@@ -1675,12 +1676,28 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
 				  end if
 				  do NGP=1,iqp	!for all the gaussian quadrature points
+				  
+                    IF (DG == 1) THEN
+                        CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                        
+!                         LCVGRAD = ILOCAL_RECON3(I)%ULEFTV_DG(:,:,L,NGP)
+!                         RCVGRAD = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV_DG(:,:,IELEM(N,I)%INEIGHN(L),NGP)
+                        
+                        LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
+                        LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
+                        CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
+                        RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
+                        RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP)
+                        
+                    ELSE !FV
 				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
 				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
 				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
 				      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP) !right mean flow state
 				      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
-				      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
+				      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP)
+                    END IF
 			
 					IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  if (icoupleturb.eq.1)then
@@ -1716,7 +1733,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 						  END IF
 						  
 				      
-				        LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+                    LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES); RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
 					CALL CONS2PRIM2(N)
 					CALL SUTHERLAND(N,LEFTV,RIGHTV)
 				     
@@ -1838,21 +1855,21 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 !                                              vdamp=((2*iorder+1)/(ielem(n,i)%dih(L)*1.25))*((4.0/3.0)*OO2*(( (VISCL(1))+(VISCL(2)))))
 ! 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)+damp*vdamp*(cright_rot(1:nof_Variables)-cleft_rot(1:nof_Variables)) 
 
-                                     TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
-					    FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
-					  U12=ZERO;V12=ZERO;W12=ZERO  
+                    TAUL=ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
+                    FXV=ZERO;FYV=ZERO;FZV=ZERO;RHO12 =ZERO;
+                    U12=ZERO;V12=ZERO;W12=ZERO
 					  
 
 ! 					  if (b_Code.eq.4)then
 ! 					  damp=zero
 !  					  end if
 					  
-					  vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-                                        nall(1)=nx;nall(2)=ny;nall(3)=nz
-                                      LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
-                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/rightv(1))-(leftv(5)/leftv(1))))
+                    vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
+                    nall(1)=nx;nall(2)=ny;nall(3)=nz
+                    LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
+                    LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
+                    LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
+                    LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/rightv(1))-(leftv(5)/leftv(1))))
 				       				  
 					  if (turbulence .eq. 1) then
 					  Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
@@ -1924,8 +1941,17 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 		
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
 
-					  
+                    IF (DG.EQ.1) THEN
+                        ! Riemann flux at interface quadrature points times basis
+                        RHLLCFLUX(1:NOF_VARIABLES) = HLLCFLUX(1:NOF_VARIABLES)
+                        
+                        FACEX = L
+                        POINTX = NGP
+                            
+                        DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+                    ELSE !FV
 				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+                    END IF
 				      
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -1950,11 +1976,17 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  (HLLCFLUX(NOF_VARIABLES+1:NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
 				      END IF
 				      
+! 				      WRITE(500+N,*) 'RHLLCFLUX', RHLLCFLUX, 'CLEFT', CLEFT, 'CRIGHT', CRIGHT, 'TAU', TAU, 'LCVGRAD', LCVGRAD
 				      
-				  END DO
+				  END DO !for all the gaussian quadrature points
 				  
+                IF (DG == 1) THEN 
+                    WRITE(500+N,*) 'RHS(I)%VALDG', RHS(I)%VALDG, 'DG_RHS_SURF_INTEG', DG_RHS_SURF_INTEG
+                    RHS(I)%VALDG = RHS(I)%VALDG - DG_RHS_SURF_INTEG
+                ELSE ! FV
 				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 !  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
+                END IF
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
@@ -1973,36 +2005,32 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 	I=EL_BND(II)
 	ICONSIDERED=I	
 				
-		     
+        IF (DG == 1) DG_RHS_SURF_INTEG = ZERO
 		   
-		    DO L=1,IELEM(N,I)%IFCA
-                        damp=lamx
-                                     igoflux=0
-				  IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-                                                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-                                                                icaseb=1        !periodic mine
-                                                        else
-                                                                icaseb=3        !physical
-                                                        end if
-                                                   
-                                                    ELSE
-                                                    
-                                                                icaseb=2!no boundaries interior
-                                                    
-                                                    end if
-                                else
-                                                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-                                                                icaseb=4
-                                                                end if
-                                                    else
-                                                                icaseb=5
-                                                    
-                                                    end if
-                                
-                                
-                                end if
+        DO L=1,IELEM(N,I)%IFCA
+            damp=lamx
+            igoflux=0
+            IF (IELEM(N,I)%INEIGHB(L).EQ.N) THEN	!MY CPU ONLY
+                IF (IELEM(N,I)%IBOUNDS(L).GT.0) THEN	!CHECK FOR BOUNDARIES
+                    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5) then	!PERIODIC IN MY CPU
+                        icaseb=1        !periodic mine
+                    else
+                        icaseb=3        !physical
+                    end if
+                
+                ELSE
+                    icaseb=2!no boundaries interior
+                end if
+            else
+                IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                    if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5) then	!PERIODIC IN OTHER CPU
+                        icaseb=4
+                    end if
+                else
+                    icaseb=5
+                end if
+            
+            end if
 ! 				  IF (icaseb.le.2)THEN
 !                                         IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
 !                                             igoflux=1
@@ -2032,11 +2060,22 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				  b_code=0
 								  
 				  
-				  do NGP=1,iqp
-				      CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
-				      LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
-				      LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
-					 IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+                do NGP=1,iqp
+                    ! Set CLEFT
+                    IF (DG == 1) THEN
+                        CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                        
+!                         LCVGRAD = ILOCAL_RECON3(I)%ULEFTV_DG(:,:,L,NGP)
+                        
+                        LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
+                        LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
+                    ELSE !FV
+                        CLEFT(1:nof_Variables)=ILOCAL_RECON3(I)%ULEFT(1:nof_Variables,L,NGP)	!left mean flow state
+                        LCVGRAD(1,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,2,L,NGP);LCVGRAD(2,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,3,L,NGP);
+                        LCVGRAD(3,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,4,L,NGP);LCVGRAD(4,1:3)=ILOCAL_RECON3(I)%ULEFTV(1:3,1,L,NGP);
+                    END IF
+                    
+                    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 						if (icoupleturb.eq.1)then
 							CTURBL(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(I)%ULEFTTURB(1:turbulenceequations+PASSIVESCALAR,L,ngp)
 						ELSE
@@ -2047,16 +2086,24 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 						end do
 					end if
 				      
-				      
-					    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
-							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								  if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN MY CPU
-								  CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
-								  RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
-								  RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
-								    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-									if (icoupleturb.eq.1)then
-									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+                    ! Set CRIGHT
+                    IF (IELEM(N,I)%INEIGHB(L).EQ.N)THEN	!MY CPU ONLY
+                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5) then	!PERIODIC IN MY CPU
+                                IF (DG == 1) THEN
+                                    CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                    
+!                                     RCVGRAD = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV_DG(:,:,IELEM(N,I)%INEIGHN(L),NGP)
+                                    RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
+                                    RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
+                                ELSE !FV
+                                    CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                    RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,L,NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,L,NGP);
+                                    RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,L,NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,L,NGP);
+                                END IF
+                                IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+                                if (icoupleturb.eq.1)then
+                                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
 									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
 									ELSE
 									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
@@ -2067,175 +2114,181 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 									end do
 									
 									
-								    END IF
+                                END IF
 								  
-								  
-								  
-								  
-								  ELSE
-								  !NOT PERIODIC ONES IN MY CPU
-								   
-								  facex=l;iconsidered=i
-								  CALL coordinates_face_innerx(N,Iconsidered,facex)
-								    CORDS(1:3)=zero
-								    CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
-							    
-								    Poy(1)=cords(2)
-								    Pox(1)=cords(1)
-								    poz(1)=cords(3)
-								    
-								    LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
-								    B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
-								    CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
-								    cright(1:nof_Variables)=rightv(1:nof_Variables)
-								    
-								    
-								    RCVGRAD(:,:)=LCVGRAD(:,:)
-				  				    RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
-				  				     if (B_CODE.eq.4)then	
-				  				    rightv=zero
-				  				    rightv(2:4)=LCVGRAD(4,1:3)
-				  				    leftv=zero
-				  				    
-				  				    CALL ROTATEF(N,TRI,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-								    leftv(2)=-leftv(2)
-								    CALL ROTATEB(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
-				  				    RCVGRAD(4,1:3)=rightv(2:4)
-				  				  	end if
-! 				  				 
-! 				  				  
-								  END IF
-							ELSE
-							      CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
-							      RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
-							      RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP);
-								  IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-									if (icoupleturb.eq.1)then
-									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
-									  (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
-									ELSE
-									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
-									END IF
-									do nvar=1,turbulenceequations+passivescalar			    
-									RCVGRAD_T(nvar,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:3,nvar,IELEM(N,I)%INEIGHN(L),NGP)
-									end do
-								    END IF
-							      
-							      
-							      
-							      
-							END IF
-					    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
-					    
-					    
-					     
-					    
-					    
-						
-							IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
-								if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5)then	!PERIODIC IN OTHER CPU
-									  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
-									  
-									  ITTT=0
-									  DO IEX=1,NOF_VARIABLES-1
-										DO nvar=1,DIMS
-										      ITTT=ITTT+1
-										      IF (IEX.EQ.1)THEN
-									  RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      ELSE
-									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)	      
-										      END IF
-										END DO  
-									  END DO
-									  
-									 
-
-									  
-									  
-									  
-								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-									if (icoupleturb.eq.1)then
-									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
-									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
-									ELSE
-									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
-									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
-									END IF
-								    END IF
+                            ELSE !NOT PERIODIC ONES IN MY CPU
+                            
+                                facex=l;iconsidered=i
+                                CALL coordinates_face_innerx(N,Iconsidered,facex)
+                                CORDS(1:3)=zero
+                                CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+                            
+                                Poy(1)=cords(2)
+                                Pox(1)=cords(1)
+                                poz(1)=cords(3)
+                                
+                                LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+                                B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+                                CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+                                cright(1:nof_Variables)=rightv(1:nof_Variables)
+                                    
+                                        
+                                RCVGRAD(:,:)=LCVGRAD(:,:)
+                                RCVGRAD_T(:,:)=LCVGRAD_T(:,:)
+                                if (B_CODE.eq.4)then	
+                                    rightv=zero
+                                    rightv(2:4)=LCVGRAD(4,1:3)
+                                    leftv=zero
+                                    
+                                    CALL ROTATEF(N,TRI,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+                                    leftv(2)=-leftv(2)
+                                    CALL ROTATEB(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
+                                    RCVGRAD(4,1:3)=rightv(2:4)
+                                end if		  				  
+                            END IF
+                        ELSE
+                        
+                            IF (DG == 1) THEN
+                                CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                                
+!                                 RCVGRAD = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV_DG(:,:,IELEM(N,I)%INEIGHN(L),NGP)
+                                RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
+                                RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP)
+                             ELSE !FV
+                                CRIGHT(1:nof_Variables)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT(1:nof_Variables,IELEM(N,I)%INEIGHN(L),NGP)
+                                
+                                RCVGRAD(1,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,2,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(2,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,3,IELEM(N,I)%INEIGHN(L),NGP);
+                                RCVGRAD(3,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,4,IELEM(N,I)%INEIGHN(L),NGP);RCVGRAD(4,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTV(1:3,1,IELEM(N,I)%INEIGHN(L),NGP)
+                            END IF
+                            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+                                if (icoupleturb.eq.1)then
+                                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURB&
+                                    (1:turbulenceequations+PASSIVESCALAR,IELEM(N,I)%INEIGHN(L),ngp)!right additional equations flow state
+                                ELSE
+                                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=U_CT(IELEM(N,I)%INEIGH(L))%VAL(1,1:turbulenceequations+PASSIVESCALAR)
+                                END IF
+                                do nvar=1,turbulenceequations+passivescalar			    
+                                RCVGRAD_T(nvar,1:3)=ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFTTURBV(1:3,nvar,IELEM(N,I)%INEIGHN(L),NGP)
+                                end do
+                            END IF
+                        END IF
+                    ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+                        IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+                            if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5) then	!PERIODIC IN OTHER CPU
+                                IF (DG == 1) THEN
+                                    CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+								ELSE !FV
+                                    CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                                END IF
+                                
+                                ITTT=0
+                                DO IEX=1,NOF_VARIABLES-1
+                                    DO nvar=1,DIMS
+                                        ITTT=ITTT+1
+                                        IF (IEX.EQ.1)THEN
+                                            IF (DG == 1) THEN
+                                                RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                            ELSE !FV
+                                                RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                            END IF
+                                        ELSE
+                                            IF (DG == 1) THEN
+                                                RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                            ELSE !FV
+                                                RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                            END IF
+                                        END IF
+                                    END DO  
+                                END DO
 									  
 									  
-									  
-									  DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-										DO nvar=1,DIMS
-										      ITTT=ITTT+1 
-									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT) 
-										END DO  
-									  END DO
+                                IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+                                if (icoupleturb.eq.1)then
+                                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+                                    (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+                                ELSE
+                                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+                                    (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+                                END IF
+                                END IF
 									  
 									  
 									  
-									  
-
-								END IF
-							ELSE 			
-							
-								  CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
-								  ITTT=0
-									  DO IEX=1,NOF_VARIABLES-1
-										DO nvar=1,DIMS
-										      ITTT=ITTT+1
-										      IF (IEX.EQ.1)THEN
-									  RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
-										      ELSE
-									  RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)	      
-										      END IF
-										END DO  
-									  END DO
-								  
-								  
-								  
-								   IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
-									if (icoupleturb.eq.1)then
-									   CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
-									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
-									ELSE
-									 CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
-									   (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
-									END IF
-									
-									 DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
-										DO nvar=1,DIMS
-										      ITTT=ITTT+1 
-									  RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT) 
-										END DO  
-									  END DO
-									
-									
-								    END IF
+                                DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+                                    DO nvar=1,DIMS
+                                        ITTT=ITTT+1 
+                                        RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT) 
+                                    END DO  
+                                END DO
+                            END IF
+                        ELSE 		
+                            IF (DG == 1) THEN
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                            ELSE !FV
+                                CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                            END IF
+                            
+                            ITTT=0
+                            DO IEX=1,NOF_VARIABLES-1
+                                DO nvar=1,DIMS
+                                    ITTT=ITTT+1
+                                    IF (IEX.EQ.1)THEN
+                                        IF (DG == 1) THEN
+                                            RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                        ELSE !FV
+                                            RCVGRAD(4,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                        END IF
+                                    ELSE
+                                        IF (DG == 1) THEN
+                                            RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                        ELSE !FV
+                                            RCVGRAD(IEX-1,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT)
+                                        END IF
+                                    END IF
+                                END DO  
+                            END DO
+                                
+                                
+                                
+                            IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
+                                if (icoupleturb.eq.1)then
+                                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+                                    (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+                                ELSE
+                                    CTURBR(1:turbulenceequations+PASSIVESCALAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL&
+                                    (IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),nof_variables+1:nof_variables+turbulenceequations+PASSIVESCALAR)!right additional equations flow state
+                                END IF
+                                
+                                    DO IEX=1,TURBULENCEEQUATIONS+PASSIVESCALAR
+                                    DO nvar=1,DIMS
+                                            ITTT=ITTT+1 
+                                    RCVGRAD_T(IEX,NVAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+TURBULENCEEQUATIONS+PASSIVESCALAR+ITTT) 
+                                    END DO  
+                                    END DO
+                                
+                                
+                            END IF
 								  
 ! 								   
-							END IF
-					    END IF
-				      
-				    
-			
+                        END IF
+                    END IF
 					
-						  IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
-						  CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
-						  LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
-						  CALL LMACHT(N)
-						  CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
-						  CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
-						  CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2) 
-						  END IF
+                    IF ((LMACH.EQ.1))THEN    !application of the low mach number correction
+                    CALL ROTATEF(N,TRI,CRIGHT_ROT,CRIGHT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+                    CALL ROTATEF(N,TRI,CLEFT_ROT,CLEFT,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+                    LEFTV(1:nof_Variables)=CLEFT_ROT(1:nof_Variables); RIGHTV(1:nof_Variables)=CRIGHT_ROT(1:nof_Variables)
+                    CALL LMACHT(N)
+                    CLEFT_ROT(1:nof_Variables)=LEFTV(1:nof_Variables);CRIGHT_ROT(1:nof_Variables)=RIGHTV(1:nof_Variables);
+                    CALL ROTATEB(N,INVTRI,CLEFT,CLEFT_ROT,ANGLE1,ANGLE2)
+                    CALL ROTATEB(N,INVTRI,CRIGHT,CRIGHT_ROT,ANGLE1,ANGLE2) 
+                    END IF
 						  
 				      
-				        LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
+                    LEFTV(1:NOF_vARIABLES)=CLEFT(1:NOF_vARIABLES);RIGHTV(1:NOF_vARIABLES)=CRIGHT(1:NOF_vARIABLES)
 					CALL CONS2PRIM2(N)
 					CALL SUTHERLAND(N,LEFTV,RIGHTV)
 				     
-					    IF (TURBULENCE.EQ.1)THEN
+                    IF (TURBULENCE.EQ.1)THEN
 						      IF (TURBULENCEMODEL.EQ.1)THEN
 							  TURBMV(1)=CTURBL(1);  TURBMV(2)=CTURBR(1);eddyfl(2)=turbmv(1); eddyfr(2)=turbmv(2)
 							  Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
@@ -2252,9 +2305,7 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 							  EDDYFR(13:15)=RCVGRAD_T(1,1:3);EDDYFL(16:18)=RCVGRAD_T(2,1:3)
 							    Call EDDYVISCO(N,VISCL,LAML,TURBMV,ETVM,EDDYFL,EDDYFR)
 						      END IF
-					  END IF
-				       
-				       
+                    END IF
 				       
 				       
 ! 					 TAUL = ZERO;TAU=ZERO;TAUR=ZERO;Q=ZERO;UX=ZERO;UY=ZERO;UZ=ZERO;VX=ZERO;VY=ZERO;VZ=ZERO;WX=ZERO;WY=ZERO;WZ=ZERO;
@@ -2366,12 +2417,13 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 					  damp=zero
  					  end if
 					  
-					  vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
-                                        nall(1)=nx;nall(2)=ny;nall(3)=nz
-                                      LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
-					   LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
-					  LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
-                                        LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/rightv(1))-(leftv(5)/leftv(1))))
+                    vdamp=(4.0/3.0)!*(( (VISCL(1))+(VISCL(2)))))
+                    nall(1)=nx;nall(2)=ny;nall(3)=nz
+                    LCVGRAD(1,1:3)=((LCVGRAD(1,1:3)+rCVGRAD(1,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(2)-leftv(2)))
+                    LCVGRAD(2,1:3)=((LCVGRAD(2,1:3)+rCVGRAD(2,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(3)-leftv(3)))
+                    LCVGRAD(3,1:3)=((LCVGRAD(3,1:3)+rCVGRAD(3,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*(rightv(4)-leftv(4)))
+                    LCVGRAD(4,1:3)=((LCVGRAD(4,1:3)+rCVGRAD(4,1:3))/(2.0d0))+damp*((vdamp/abs(ielem(n,i)%dih(L)))*nall(1:3)*((rightv(5)/rightv(1))-(leftv(5)/leftv(1))))
+                    !how?
 				       				  
 					  if (turbulence .eq. 1) then
 					  Q(1:3)=  - OO2* ((LAML(3)+ (LAML(4)))*LCVGRAD(4,1:3))
@@ -2443,8 +2495,17 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 		
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV+NZ*FZV)	
 
-
+                    IF (DG.EQ.1) THEN
+                        ! Riemann flux at interface quadrature points times basis
+                        RHLLCFLUX(1:NOF_VARIABLES) = HLLCFLUX(1:NOF_VARIABLES)
+                        
+                        FACEX = L
+                        POINTX = NGP
+                         
+                        DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+                    ELSE !FV
 				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+                    END IF
 				      
 				      
 				      
@@ -2483,11 +2544,15 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 				      
 				  END DO
 				  
-				    
+                IF (DG == 1) THEN
+                    WRITE(500+N,*) 'RHS(I)%VALDG', RHS(I)%VALDG, 'DG_RHS_SURF_INTEG', DG_RHS_SURF_INTEG
+                    RHS(I)%VALDG = RHS(I)%VALDG - DG_RHS_SURF_INTEG
+                ELSE ! FV
 				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
 ! 				    if ((igoflux.eq.1))then
 ! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
 ! 				    end if
+                END IF
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
 				    RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)=RHST(I)%VAL(1:TURBULENCEEQUATIONS+PASSIVESCALAR)-&
@@ -2505,7 +2570,149 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE(N)
 
 END SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE
 
+	
+SUBROUTINE CALCULATE_DG_VISCOUS_FLUXES_BR2(N)
+!> @brief
+!> This subroutine computes the surface term for the BR2 viscous flux
+	IMPLICIT NONE
+	INTEGER,INTENT(IN)::N
+	INTEGER::I,L,NGP,KMAXE,IQP,I_VAR,I_DIM,I_DOF,ITTT,IEX
+	REAL,DIMENSION(3)::NNN
+	REAL,DIMENSION(NOF_VARIABLES,3)::LCVGRAD,RCVGRAD
+	REAL,DIMENSION(NOF_VARIABLES)::DG_SOL_TEMP
+	REAL,DIMENSION(NUMBER_OF_DOG)::BASIS_TEMP
+	REAL,DIMENSION(1:NUMBEROFPOINTS2)::WEIGHTS_Q,WEIGHTS_T,WEIGHTS_TEMP
+	REAL,EXTERNAL::DDOT
+	
+	KMAXE = XMPIELRANK(N)
+	
+	call QUADRATUREQUAD3D(N,IGQRULES)
+	WEIGHTS_Q(1:QP_QUAD) = WEQUA2D(1:QP_QUAD)
+	
+	call QUADRATURETRIANG(N,IGQRULES)
+	WEIGHTS_T(1:QP_TRIANGLE) = WEQUA2D(1:QP_TRIANGLE)
 
+	if(reduce_comp.eq.1)then
+        WEIGHTS_T=1.0d0; WEIGHTS_Q=1.0d0
+	end if
+	
+	!$OMP DO SCHEDULE (STATIC)
+	DO I = 1, KMAXE
+        ICONSIDERED = I
+        NUMBER = IELEM(N,I)%IORDER
+        
+        
+        ! Calculate surface term
+        DO L=1,IELEM(N,I)%IFCA !for all their faces
+            FACEX = L
+            ANGLE1=IELEM(N,I)%FACEANGLEX(L)
+            ANGLE2=IELEM(N,I)%FACEANGLEY(L)
+            NX=(COS(ANGLE1)*SIN(ANGLE2))
+            NY=(SIN(ANGLE1)*SIN(ANGLE2))
+            NZ=(COS(ANGLE2))
+            NNN(1)=NX;NNN(2)=NY;NNN(3)=NZ
+            if (ielem(n,i)%types_faces(L).eq.5)then
+                iqp=qp_quad_n
+                WEIGHTS_TEMP(1:IQP)=WEIGHTS_Q(1:IQP)
+            else
+                iqp=QP_TRIANGLE_n
+                WEIGHTS_TEMP(1:IQP)=WEIGHTS_T(1:IQP)
+            end if
+            
+            do NGP=1,iqp	!for all the gaussian quadrature points
+                POINTX = NGP
+                
+                CLEFT(1:nof_Variables) = ILOCAL_RECON3(I)%ULEFT_DG(1:NOF_VARIABLES, L, NGP)
+                LCVGRAD = ILOCAL_RECON3(I)%BR2_AUX_VAR(:,:,L,NGP)
+                
+                ! Set CRIGHT
+                IF (IELEM(N,I)%INTERIOR == 0) THEN ! CELL IS INTERIOR
+                
+!                     WRITE(500+N, *) 'INTERIOR'
+                    
+                    CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                    RCVGRAD = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%BR2_AUX_VAR(:,:,IELEM(N,I)%INEIGHN(L),NGP)
+                ELSE IF (IELEM(N,I)%INEIGHB(L).EQ.N) THEN !MY CPU ONLY
+!                     WRITE(500+N, *)  "MY CPU", IELEM(N,I)%INEIGHB(L), IELEM(N,I)%IBOUNDS(L) 
+                    
+                    IF (IELEM(N,I)%IBOUNDS(L).GT.0)THEN	!CHECK FOR BOUNDARIES
+!                         wRITE(500+N, *) "ICODE", ibound(n,ielem(n,i)%ibounds(L))%icode
+                        if (ibound(n,ielem(n,i)%ibounds(L))%icode.eq.5) then	!PERIODIC IN MY CPU
+                            CRIGHT(1:nof_Variables) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                            RCVGRAD = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%BR2_AUX_VAR(:,:,IELEM(N,I)%INEIGHN(L),NGP)
+                                
+                        ELSE !NOT PERIODIC ONES IN MY CPU
+                            CALL coordinates_face_innerx(N,Iconsidered,facex)
+                            CORDS(1:3)=zero
+                            CORDS(1:3)=CORDINATES3(N,NODES_LIST,N_NODE)
+                        
+                            Poy(1)=cords(2)
+                            Pox(1)=cords(1)
+                            poz(1)=cords(3)
+                            
+                            LEFTV(1:nof_variables)=CLEFT(1:nof_variables)
+                            B_CODE=ibound(n,ielem(n,i)%ibounds(l))%icode
+                            CALL BOUNDARYS(N,B_CODE,ICONSIDERED)
+                            cright(1:nof_Variables)=rightv(1:nof_Variables)
+                            
+                            RCVGRAD = LCVGRAD !???
+                            if (B_CODE.eq.4)then	
+                                rightv=zero
+                                rightv(2:4)=LCVGRAD(4,1:3)
+                                leftv=zero
+                                
+                                CALL ROTATEF(N,TRI,leftv,rightv,ANGLE1,ANGLE2)	!rotate wrt to normalvector of face and solve 1D Riemann problem
+                                leftv(2)=-leftv(2)
+                                CALL ROTATEB(N,INVTRI,rightv,leftv,ANGLE1,ANGLE2)
+                                RCVGRAD(4,1:3)=rightv(2:4)
+                            end if
+                        END IF
+                    ELSE
+                        CRIGHT(1:NOF_VARIABLES) = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%ULEFT_DG(1:NOF_VARIABLES, IELEM(N,I)%INEIGHN(L), NGP)
+                        
+                        RCVGRAD = ILOCAL_RECON3(IELEM(N,I)%INEIGH(L))%BR2_AUX_VAR(:,:,IELEM(N,I)%INEIGHN(L),NGP)
+                    END IF
+                ELSE	!IN OTHER CPUS THEY CAN ONLY BE PERIODIC OR MPI NEIGHBOURS
+                
+!                     WRITE(500+N, *)  "OTHER CPU", IELEM(N,I)%INEIGHB(L), IELEM(N,I)%IBOUNDS(L) 
+                    CRIGHT(1:nof_variables)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),1:nof_variables)
+                    ITTT=0
+                    DO IEX=1,NOF_VARIABLES-1
+                        DO I_VAR=1,DIMS
+                            ITTT=ITTT+1
+                            IF (IEX.EQ.1)THEN
+                                RCVGRAD(4,I_VAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+ITTT)
+                            ELSE
+                                RCVGRAD(IEX-1,I_VAR)=IEXBOUNDHIR(IELEM(N,I)%INEIGHN(L))%FACESOL_DG(IELEM(N,I)%Q_FACE(L)%Q_MAPL(NGP),NOF_VARIABLES+ITTT)
+                            END IF
+                        END DO  
+                    END DO
+                END IF
+                
+                
+                FLUX_TERM_X = ZERO; FLUX_TERM_Y = ZERO; FLUX_TERM_Z = ZERO
+                LEFTV = CLEFT
+                LEFTV_DER = LCVGRAD
+                CALL FLUX_VISC3D(N)
+!                 WRITE(500+N, *) "1", LEFTV, LEFTV_DER, FLUX_TERM_X, FLUX_TERM_Y, FLUX_TERM_Z
+                
+                FLUX_TERM_X = -FLUX_TERM_X; FLUX_TERM_Y = -FLUX_TERM_Y; FLUX_TERM_Z = -FLUX_TERM_Z
+                LEFTV = CRIGHT
+                LEFTV_DER = RCVGRAD
+                CALL FLUX_VISC3D(N)
+!                 WRITE(500+N, *) "2", LEFTV, LEFTV_DER, FLUX_TERM_X, FLUX_TERM_Y, FLUX_TERM_Z
+                
+                RHLLCFLUX = OO2 * (FLUX_TERM_X * NX + FLUX_TERM_Y * NY + FLUX_TERM_Z * NZ)
+                
+                RHS(I)%VALDG = RHS(I)%VALDG + DG_SURF_FLUX(N)
+                    
+            END DO !for each Gaussian quadrature points ngp
+        END DO !for each face L
+        
+	END DO !for each element I
+	!$OMP END DO
+
+END SUBROUTINE CALCULATE_DG_VISCOUS_FLUXES_BR2
 
 
 SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
@@ -2546,6 +2753,11 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	DO II=1,NOF_INTERIOR	!for all the interior elements
 	I=EL_INT(II)
 	ICONSIDERED=I
+	
+        IF (DG .EQ. 1) THEN
+            DG_RHS_SURF_INTEG = ZERO
+            DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+        END IF
 		   
 		    DO L=1,IELEM(N,I)%IFCA !for all their faces
 !                              IF (IELEM(N,I)%REORIENT(l).EQ.0)THEN
@@ -2789,9 +3001,14 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 ! 					 
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)	
 		
-					  			      
-				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
-				      
+                    IF (DG.EQ.1) THEN
+                        ! Riemann flux at interface quadrature points times basis
+                        RHLLCFLUX(1:NOF_VARIABLES) = HLLCFLUX(1:NOF_VARIABLES)
+                            
+                        DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+                    ELSE !FV
+                        GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables) +  (HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+                    END IF
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
 					  IF (TURBULENCE.EQ.1)THEN
@@ -2816,7 +3033,12 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				      
 				  END DO
 				  
-				    RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+            IF (DG == 1) THEN 
+                RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+            ELSE ! FV
+                RHS(I)%VAL(1:nof_Variables) = RHS(I)%VAL(1:nof_Variables) - GODFLUX2(1:nof_Variables)
+            END IF
+                
 !  				     RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
 				    
 				    IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))then
@@ -2836,6 +3058,10 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	I=EL_BND(II)
 	ICONSIDERED=I	
 				
+        IF (DG .EQ. 1) THEN
+            DG_RHS_SURF_INTEG = ZERO
+            DG_RHS_VOL_INTEG = DG_VOL_INTEGRAL(N)
+        END IF
 		    
 		    
 		    DO L=1,IELEM(N,I)%IFCA
@@ -3279,9 +3505,14 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 					  HLLCFLUX(1:nof_Variables)=(NX*FXV+NY*FYV)			
 					  
 		
-		
-			      
-				      GODFLUX2(1:nof_Variables)=GODFLUX2(1:nof_Variables)+(HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+                    IF (DG.EQ.1) THEN
+                        ! Riemann flux at interface quadrature points times basis
+                        RHLLCFLUX(1:NOF_VARIABLES) = HLLCFLUX(1:NOF_VARIABLES)
+                         
+                        DG_RHS_SURF_INTEG = DG_RHS_SURF_INTEG + DG_SURF_FLUX(N)
+                    ELSE !FV
+                        GODFLUX2(1:nof_Variables) = GODFLUX2(1:nof_Variables) + (HLLCFLUX(1:nof_Variables)*(WEIGHTS_TEMP(NGP)*IELEM(N,I)%SURF(L)))
+                    END IF
 				      
 				     
 				      IF ((TURBULENCE.EQ.1).OR.(PASSIVESCALAR.GT.0))THEN 
@@ -3317,7 +3548,13 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 				  END DO
 				  
 				    
-				     RHS(I)%VAL(1:nof_Variables)=RHS(I)%VAL(1:nof_Variables)-GODFLUX2(1:nof_Variables)
+            IF (DG == 1) THEN 
+                RHS(I)%VALDG = RHS(I)%VALDG + DG_RHS_SURF_INTEG - DG_RHS_VOL_INTEG
+            ELSE ! FV
+                RHS(I)%VAL(1:nof_Variables) = RHS(I)%VAL(1:nof_Variables) - GODFLUX2(1:nof_Variables)
+            END IF
+            
+            
 ! 				    if ((igoflux.eq.1))then
 ! 				    RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)=RHS(IELEM(N,I)%INEIGH(L))%VAL(1:nof_Variables)+GODFLUX2(1:nof_Variables)
 ! 				    end if
@@ -3337,7 +3574,6 @@ SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d(N)
 	!$OMP END DO
 
 END SUBROUTINE CALCULATE_FLUXESHI_DIFFUSIVE2d
-
 
 
 
